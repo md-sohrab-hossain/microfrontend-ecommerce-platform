@@ -39,6 +39,7 @@ module.exports = {
         react: { singleton: true, eager: false, requiredVersion: '^18.2.0' },
         'react-dom': { singleton: true, eager: false, requiredVersion: '^18.2.0' },
         'react-router-dom': { singleton: true, eager: false, requiredVersion: '^6.8.0' },
+        '@microfrontend-ecommerce/shared': { singleton: true, eager: false },
       },
     }),
     new HtmlWebpackPlugin({

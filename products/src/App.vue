@@ -22,28 +22,20 @@
     </router-view>
   </div>
 </template>
-
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { EventBus } from '@microfrontend-ecommerce/shared';
-
 const showDebugBoxes = ref(false); // Toggle debug boxes - set to false for clean UI
-
 // Setup event bus for microfrontend communication
 onMounted(() => {
   const eventBus = EventBus.getInstance();
-  
   // Listen for container events if needed
   eventBus.on('USER_LOGIN', (data: any) => {
-    console.log('User logged in:', data);
   });
-
   eventBus.on('USER_LOGOUT', () => {
-    console.log('User logged out');
   });
 });
 </script>
-
 <style scoped>
 .products-microfrontend {
   min-height: 400px;

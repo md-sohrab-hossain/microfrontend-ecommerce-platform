@@ -8,7 +8,6 @@ const root = ReactDOM.createRoot(
 );
 
 root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+  // Temporarily disable StrictMode for microfrontend development  
+  <App />
 );

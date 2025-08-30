@@ -67,6 +67,7 @@ module.exports = {
         vue: { singleton: true, eager: false, requiredVersion: '^3.3.4' },
         'vue-router': { singleton: true, eager: false, requiredVersion: '^4.2.4' },
         pinia: { singleton: true, eager: false, requiredVersion: '^2.1.6' },
+        '@microfrontend-ecommerce/shared': { singleton: true, eager: false },
       },
     }),
     new HtmlWebpackPlugin({

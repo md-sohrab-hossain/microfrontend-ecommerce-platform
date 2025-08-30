@@ -4,7 +4,6 @@ import Loading from './Loading';
 const CartApp = React.lazy(() => 
   import('cart/App')
     .then(module => {
-      console.log('Cart module loaded:', module);
       return { default: module.default };
     })
     .catch(error => {

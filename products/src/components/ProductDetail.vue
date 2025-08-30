@@ -13,7 +13,6 @@
         </div>
       </div>
     </div>
-
     <!-- Debug info -->
     <div v-if="showDebugInfo" class="mb-4 p-4 bg-yellow-50 rounded border border-yellow-200">
       <p><strong>🔍 ProductDetail Debug:</strong></p>
@@ -44,7 +43,6 @@
         </button>
       </div>
     </div>
-
     <!-- Error state -->
     <div v-else-if="error" class="text-center py-12">
       <div class="text-red-500 text-lg font-semibold mb-2">{{ error }}</div>
@@ -55,7 +53,6 @@
         Try Again
       </button>
     </div>
-
     <!-- Product detail -->
     <div v-else-if="product" class="space-y-8">
       <!-- Breadcrumb -->
@@ -64,7 +61,6 @@
         <span>/</span>
         <span class="text-gray-900">{{ product.title }}</span>
       </nav>
-
       <!-- Product content -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <!-- Product image -->
@@ -78,7 +74,6 @@
             />
           </div>
         </div>
-
         <!-- Product info -->
         <div class="space-y-6">
           <div>
@@ -88,7 +83,6 @@
               </span>
             </div>
             <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ product.title }}</h1>
-            
             <!-- Rating -->
             <div class="flex items-center space-x-2 mb-4">
               <div class="flex items-center">
@@ -99,19 +93,16 @@
               <span class="text-gray-600">{{ product.rating.rate }}</span>
               <span class="text-gray-500">({{ product.rating.count }} reviews)</span>
             </div>
-
             <!-- Price -->
             <div class="text-4xl font-bold text-primary-600 mb-6">
               ${{ product.price.toFixed(2) }}
             </div>
-
             <!-- Description -->
             <div class="prose max-w-none">
               <h3 class="text-lg font-semibold text-gray-900 mb-2">Description</h3>
               <p class="text-gray-600 leading-relaxed">{{ product.description }}</p>
             </div>
           </div>
-
           <!-- Actions -->
           <div class="space-y-4 pt-6 border-t">
             <div class="flex items-center space-x-4">
@@ -124,7 +115,6 @@
                 <option v-for="i in 10" :key="i" :value="i">{{ i }}</option>
               </select>
             </div>
-            
             <button
               @click="addToCart"
               :disabled="addingToCart"
@@ -144,7 +134,6 @@
               </span>
               <span v-else>Add to Cart - ${{ (product.price * quantity).toFixed(2) }}</span>
             </button>
-            
             <button
               @click="buyNow"
               class="w-full bg-green-600 text-white py-3 px-6 rounded-md hover:bg-green-700 transition-colors font-medium"
@@ -152,7 +141,6 @@
               Buy Now
             </button>
           </div>
-
           <!-- Product features -->
           <div class="grid grid-cols-2 gap-4 pt-6 border-t">
             <div class="text-center p-4 bg-gray-50 rounded-lg">
@@ -168,7 +156,6 @@
           </div>
         </div>
       </div>
-
       <!-- Related products -->
       <div v-if="relatedProducts.length > 0" class="pt-12 border-t">
         <h2 class="text-2xl font-bold text-gray-900 mb-6">Related Products</h2>
@@ -181,7 +168,6 @@
         </div>
       </div>
     </div>
-
     <!-- Not found -->
     <div v-else class="text-center py-12">
       <div class="text-gray-500 text-lg mb-4">Product not found</div>
@@ -195,34 +181,27 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
 import { computed, onMounted, ref, inject, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useProductsStore } from '../stores/products';
 import { EventBus } from '@microfrontend-ecommerce/shared';
 import ProductCard from './ProductCard.vue';
-
 interface Props {
   id?: string;
 }
-
 const props = defineProps<Props>();
 const showDebugInfo = ref(false); // Clean UI - set to true for debugging if needed
 const route = useRoute();
 const router = inject('router') as any;
 const productsStore = useProductsStore();
 const eventBus = EventBus.getInstance();
-
 // Component setup validation (development only)
 if (process.env.NODE_ENV === 'development') {
-  console.log('🔍 ProductDetail: Setup - Router:', !!router, 'Route:', route.path, 'Params:', route.params);
 }
-
 // Reactive refs
 const quantity = ref(1);
 const addingToCart = ref(false);
-
 // Computed properties
 const loading = computed(() => productsStore.loading);
 const error = computed(() => productsStore.error);
@@ -233,29 +212,41 @@ const relatedProducts = computed(() => {
     .filter(p => p.category === product.value?.category && p.id !== product.value?.id)
     .slice(0, 4);
 });
-
 // Methods
 const formatCategory = (category: string) => {
   return category.charAt(0).toUpperCase() + category.slice(1).replace(/'/g, '');
 };
-
 const addToCart = () => {
   if (product.value) {
     addingToCart.value = true;
-    
-    eventBus.emit('ADD_TO_CART', {
-      product: product.value,
-      quantity: quantity.value,
-    });
-    console.log(`Added ${quantity.value} ${product.value.title} to cart`);
-    
+    // Enhanced EventBus testing
+    if (eventBus && typeof eventBus.emit === 'function') {
+      const cartData = {
+        product: product.value,
+        quantity: quantity.value,
+      };
+      try {
+        eventBus.emit('ADD_TO_CART', cartData);
+        // Test EventBus health
+        setTimeout(() => {
+          if (typeof eventBus.listeners === 'function') {
+          } else {
+          }
+        }, 100);
+      } catch (error) {
+        console.error('❌ ProductDetail: Error emitting ADD_TO_CART:', error);
+      }
+    } else {
+      console.error('❌ ProductDetail: EventBus or emit method not available!');
+    }
     // Reset button state after animation
     setTimeout(() => {
       addingToCart.value = false;
     }, 2000);
+  } else {
+    console.error('❌ ProductDetail: No product available to add to cart');
   }
 };
-
 const buyNow = () => {
   addToCart();
   // Navigate to cart
@@ -266,27 +257,21 @@ const buyNow = () => {
     eventBus.emit('NAVIGATE', { path: '/cart' });
   }
 };
-
 const goBack = () => {
   // Update container URL directly for microfrontend compatibility
   const productsUrl = '/products';
-  
   if (typeof window !== 'undefined') {
     // Update browser URL
     window.history.pushState({}, '', productsUrl);
-    
     // Trigger popstate event to notify other components
     window.dispatchEvent(new PopStateEvent('popstate', { state: {} }));
   }
-  
   // Also update Vue router
   if (router) {
-    console.log('🔄 ProductDetail: Navigating back to Vue root');
     router.push('/').catch((error) => {
       console.error('❌ ProductDetail: Vue router navigation to root failed:', error);
       // If even root navigation fails, force reload as last resort
       if (typeof window !== 'undefined') {
-        console.log('🔄 ProductDetail: Force reloading page as last resort');
         window.location.href = '/products';
       }
     });
@@ -297,7 +282,6 @@ const goBack = () => {
     }
   }
 };
-
 const retry = () => {
   const productId = parseInt(props.id || route.params.id as string);
   if (productId) {
@@ -305,42 +289,29 @@ const retry = () => {
     productsStore.fetchProduct(productId);
   }
 };
-
 const testDirectAPI = async () => {
   const productId = parseInt(props.id || route.params.id as string) || 3;
-  console.log('🧪 Testing direct API call for product:', productId);
-  
   try {
     const response = await fetch(`https://fakestoreapi.com/products/${productId}`);
     const data = await response.json();
-    console.log('✅ Direct API test successful:', data);
     alert(`API Test Success: ${data.title}`);
   } catch (error) {
     console.error('❌ Direct API test failed:', error);
     alert('API Test Failed - Check console for details');
   }
 };
-
 const testRouterNavigation = () => {
-  console.log('🧪 Testing router navigation...');
-  console.log('Router available:', !!router);
-  console.log('Current route:', router?.currentRoute?.value);
-  
   if (router) {
-    console.log('🚀 Testing navigation to root');
     router.push('/').then(() => {
-      console.log('✅ Navigation to root successful');
     }).catch((error) => {
       console.error('❌ Navigation to root failed:', error);
     });
   }
 };
-
 const handleImageError = (event: Event) => {
   const target = event.target as HTMLImageElement;
   target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2Y0ZjRmNCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkeT0iMC4zZW0iIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgZmlsbD0iIzk5OTk5OSI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+';
 };
-
 // Watch for route changes
 watch(
   () => route.params.id,
@@ -351,32 +322,20 @@ watch(
     }
   }
 );
-
 // Initialize on mount
 onMounted(async () => {
-  console.log('🔍 ProductDetail: Component mounted');
-  console.log('  Props ID:', props.id);
-  console.log('  Route params:', route.params);
-  console.log('  Route path:', route.path);
-  
   const productId = parseInt(props.id || route.params.id as string);
-  console.log('  Parsed product ID:', productId);
-  
   if (productId && !isNaN(productId)) {
-    console.log('📡 ProductDetail: Fetching product with ID:', productId);
     try {
       await productsStore.fetchProduct(productId);
-      console.log('✅ ProductDetail: Product fetched successfully');
     } catch (error) {
       console.error('❌ ProductDetail: Failed to fetch product:', error);
     }
   } else {
     console.error('❌ ProductDetail: Invalid product ID:', productId);
   }
-  
   // Ensure we have all products for related products
   if (productsStore.products.length === 0) {
-    console.log('📡 ProductDetail: Fetching all products for related products');
     await productsStore.fetchProducts();
   }
 });

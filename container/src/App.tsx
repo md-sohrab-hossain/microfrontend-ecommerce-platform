@@ -8,8 +8,9 @@ import MicrofrontendWrapper from './components/MicrofrontendWrapper';
 import RemoteProductsApp from './components/RemoteProductsApp';
 import RemoteCartApp from './components/RemoteCartApp';
 import RemoteAuthApp from './components/RemoteAuthApp';
-import DebugPanel from './components/DebugPanel';
-import AddToCartTester from './components/AddToCartTester';
+// Debug components removed for clean UI
+// import SimpleAddToCartTest from './components/SimpleAddToCartTest';
+// import EventBusTestPanel from './components/EventBusTestPanel';
 import Home from './pages/Home';
 
 function App() {
@@ -76,13 +77,8 @@ function App() {
           </footer>
         </div>
         
-        {/* Debug Tools for development */}
-        {process.env.NODE_ENV === 'development' && (
-          <>
-            <DebugPanel />
-            <AddToCartTester />
-          </>
-        )}
+        {/* Debug Tools for development - REMOVED */}
+        {/* Debug panels removed for clean production UI */}
       </Router>
     </AppProvider>
   );

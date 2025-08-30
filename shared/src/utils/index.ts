@@ -4,6 +4,19 @@ export class EventBus {
   private events: { [key: string]: Function[] } = {};
 
   static getInstance(): EventBus {
+    // ALWAYS use global instance to prevent recreation
+    if (typeof window !== 'undefined') {
+      if ((window as any).__SHARED_EVENT_BUS__) {
+        return (window as any).__SHARED_EVENT_BUS__;
+      }
+      
+      // Create new instance and store globally
+      const newInstance = new EventBus();
+      (window as any).__SHARED_EVENT_BUS__ = newInstance;
+      return newInstance;
+    }
+
+    // Fallback for non-browser environments
     if (!EventBus.instance) {
       EventBus.instance = new EventBus();
     }
@@ -35,6 +48,19 @@ export class EventBus {
   // Clear all events
   clear(): void {
     this.events = {};
+  }
+
+  // Debug methods for development
+  listeners(event: string): Function[] {
+    return this.events[event] || [];
+  }
+
+  getAllEvents(): { [key: string]: number } {
+    const eventCounts: { [key: string]: number } = {};
+    Object.keys(this.events).forEach(event => {
+      eventCounts[event] = this.events[event].length;
+    });
+    return eventCounts;
   }
 }
 

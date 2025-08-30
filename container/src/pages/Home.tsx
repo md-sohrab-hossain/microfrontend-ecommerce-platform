@@ -10,7 +10,7 @@ const Home: React.FC = () => {
     },
     {
       title: 'Product Catalog',
-      description: 'Browse through our extensive product collection from Fake Store API',
+      description: 'Browse through our extensive product collection with various categories',
       icon: '📦',
     },
     {
@@ -103,26 +103,7 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* API info */}
-      <div className="bg-gray-100 p-8 rounded-lg">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4 text-center">
-          Powered by Fake Store API
-        </h2>
-        <p className="text-gray-600 text-center max-w-2xl mx-auto">
-          This application demonstrates real-world API integration using the Fake Store API,
-          providing realistic product data, user authentication, and shopping cart functionality.
-        </p>
-        <div className="text-center mt-6">
-          <a
-            href="https://fakestoreapi.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary-600 hover:text-primary-700 font-medium"
-          >
-            Learn more about Fake Store API →
-          </a>
-        </div>
-      </div>
+      {/* Clean footer section */}
     </div>
   );
 };

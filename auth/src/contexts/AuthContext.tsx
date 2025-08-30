@@ -51,6 +51,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
+  // Listen for logout events from other microfrontends
+  useEffect(() => {
+    const handleExternalLogout = () => {
+      // Internal logout without emitting event (to prevent loops)
+      storage.remove('authToken');
+      storage.remove('authUser');
+
+      setState({
+        user: null,
+        token: null,
+        isAuthenticated: false,
+        loading: false,
+        error: null,
+      });
+    };
+
+    eventBus.on('USER_LOGOUT', handleExternalLogout);
+
+    return () => {
+      eventBus.off('USER_LOGOUT', handleExternalLogout);
+    };
+  }, []); // Empty dependency array since handler is self-contained
+
   const login = async (credentials: LoginCredentials): Promise<boolean> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 

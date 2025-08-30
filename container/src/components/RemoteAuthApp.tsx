@@ -4,7 +4,6 @@ import Loading from './Loading';
 const AuthApp = React.lazy(() => 
   import('auth/App')
     .then(module => {
-      console.log('Auth module loaded:', module);
       return { default: module.default };
     })
     .catch(error => {

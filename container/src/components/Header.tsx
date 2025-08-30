@@ -1,21 +1,10 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { EventBus } from '@microfrontend-ecommerce/shared';
 
 const Header: React.FC = () => {
   const { state, logout } = useApp();
-  const [showDebugPanel, setShowDebugPanel] = React.useState(false);
-  const [eventBusStatus, setEventBusStatus] = React.useState<any>({});
-  
-  // Debug panel toggle
-  const toggleDebugPanel = () => {
-    setShowDebugPanel(!showDebugPanel);
-    if (!showDebugPanel) {
-      const eventBus = EventBus.getInstance();
-      setEventBusStatus(eventBus.getAllEvents());
-    }
-  };
+  // Debug functionality removed for clean production UI
   const location = useLocation();
 
   const isActive = (path: string) => {
@@ -64,21 +53,7 @@ const Header: React.FC = () => {
                   {state.cartCount}
                 </span>
               )}
-              {/* Debug info - remove in production */}
-              {process.env.NODE_ENV === 'development' && (
-                <>
-                  <span className="absolute -bottom-6 -right-2 bg-blue-500 text-white text-xs px-1 rounded text-[10px]">
-                    {state.cartCount}
-                  </span>
-                  <button
-                    onClick={toggleDebugPanel}
-                    className="absolute -bottom-12 -right-2 bg-purple-500 text-white text-xs px-2 py-1 rounded hover:bg-purple-600"
-                    title="Toggle Debug Panel"
-                  >
-                    🔍
-                  </button>
-                </>
-              )}
+              {/* Debug elements removed for clean UI */}
             </Link>
 
             {/* User menu */}
@@ -129,53 +104,10 @@ const Header: React.FC = () => {
             </button>
           </div>
         </div>
-      </header>
+      </div>
+    </header>
       
-      {/* Debug Panel */}
-      {showDebugPanel && process.env.NODE_ENV === 'development' && (
-        <div className="bg-yellow-50 border-b-2 border-yellow-200 p-4">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-lg font-bold text-yellow-800 mb-2">🛒 Add to Cart Debug Panel</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <strong>Container Cart Count:</strong> {state.cartCount}
-                  </div>
-                  <div>
-                    <strong>Container Cart Items:</strong> {state.cart.length}
-                  </div>
-                  <div>
-                    <strong>Stored Products:</strong> {Object.keys(state.products).length}
-                  </div>
-                  <div>
-                    <strong>User Authenticated:</strong> {state.isAuthenticated ? 'Yes' : 'No'}
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <strong>EventBus Listeners:</strong>
-                  <pre className="mt-1 text-xs bg-yellow-100 p-2 rounded max-w-md overflow-auto">
-                    {JSON.stringify(eventBusStatus, null, 2)}
-                  </pre>
-                </div>
-                <div className="mt-2">
-                  <strong>Cart Details:</strong>
-                  <pre className="mt-1 text-xs bg-yellow-100 p-2 rounded max-w-md overflow-auto">
-                    {JSON.stringify(state.cart, null, 2)}
-                  </pre>
-                </div>
-              </div>
-              <button 
-                onClick={toggleDebugPanel}
-                className="bg-yellow-600 text-white px-3 py-1 rounded hover:bg-yellow-700"
-              >
-                ✕ Close
-              </button>
-            </div>
-          </div>
-          </div>
-        </div>
-      )}
+      {/* Debug panel removed for clean production UI */}
     </>
   );
 };

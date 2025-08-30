@@ -4,17 +4,14 @@ import CartItem from './components/CartItem';
 import CartSummary from './components/CartSummary';
 import EmptyCart from './components/EmptyCart';
 import './index.css';
-
 // Cart content component
 const CartContent: React.FC = () => {
   const { state, updateQuantity, removeItem, clearCart } = useCart();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-
   const handleCheckout = () => {
     // In a real app, this would navigate to checkout
     alert('Checkout functionality would be implemented here!');
   };
-
   const handleClearCart = () => {
     if (showClearConfirm) {
       clearCart();
@@ -23,11 +20,9 @@ const CartContent: React.FC = () => {
       setShowClearConfirm(true);
     }
   };
-
   const handleCancelClear = () => {
     setShowClearConfirm(false);
   };
-
   if (state.loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -38,7 +33,6 @@ const CartContent: React.FC = () => {
       </div>
     );
   }
-
   if (state.error) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -54,7 +48,7 @@ const CartContent: React.FC = () => {
       </div>
     );
   }
-
+  // Debug cart state before deciding whether to show EmptyCart
   if (state.items.length === 0) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -62,7 +56,6 @@ const CartContent: React.FC = () => {
       </div>
     );
   }
-
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="mb-8">
@@ -71,7 +64,6 @@ const CartContent: React.FC = () => {
           {state.itemCount} {state.itemCount === 1 ? 'item' : 'items'} in your cart
         </p>
       </div>
-
       {/* Clear cart confirmation */}
       {showClearConfirm && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
@@ -101,7 +93,6 @@ const CartContent: React.FC = () => {
           </div>
         </div>
       )}
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Cart items */}
         <div className="lg:col-span-2 space-y-4">
@@ -114,7 +105,6 @@ const CartContent: React.FC = () => {
             />
           ))}
         </div>
-
         {/* Cart summary */}
         <div className="lg:col-span-1">
           <CartSummary
@@ -125,7 +115,6 @@ const CartContent: React.FC = () => {
           />
         </div>
       </div>
-
       {/* Continue shopping */}
       <div className="mt-8 pt-8 border-t border-gray-200">
         <button
@@ -145,8 +134,7 @@ const CartContent: React.FC = () => {
     </div>
   );
 };
-
-// Main App component
+// Main App component  
 const App: React.FC = () => {
   return (
     <CartProvider>
@@ -156,5 +144,4 @@ const App: React.FC = () => {
     </CartProvider>
   );
 };
-
 export default App;

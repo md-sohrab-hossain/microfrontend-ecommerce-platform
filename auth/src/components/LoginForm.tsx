@@ -64,9 +64,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
 
     const success = await login(formData);
     if (success) {
-      // Show success message briefly before redirect
-      console.log('Login successful! Redirecting...');
-      
       // Small delay to show the updated header state
       setTimeout(() => {
         if (typeof window !== 'undefined') {
@@ -83,10 +80,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
   };
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      // You could show a toast notification here
-      console.log('Copied to clipboard:', text);
-    });
+    navigator.clipboard.writeText(text);
   };
 
   return (

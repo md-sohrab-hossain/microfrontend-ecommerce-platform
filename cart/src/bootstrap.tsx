@@ -17,10 +17,12 @@ if (!window.__POWERED_BY_MODULE_FEDERATION__) {
   );
 
   root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
+    // Temporarily disable StrictMode for microfrontend development
+    <App />
   );
+} else {
+  // When used as microfrontend, set flag to prevent duplicate mounting
+
 }
 
 export default App;

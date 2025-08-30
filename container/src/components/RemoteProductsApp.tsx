@@ -4,7 +4,6 @@ import Loading from './Loading';
 const ProductsApp = React.lazy(() => 
   import('products/App')
     .then(module => {
-      console.log('Products module loaded:', module);
       return { default: module.default };
     })
     .catch(error => {
@@ -16,10 +15,8 @@ const ProductsApp = React.lazy(() =>
 const showDebugBoxes = false; // Set to false to hide debug boxes
 
 const RemoteProductsApp: React.FC = () => {
-  console.log('🎭 RemoteProductsApp: Component rendering');
-  
   React.useEffect(() => {
-    console.log('🎭 RemoteProductsApp: Component mounted');
+    // Component mounted
   }, []);
 
   return (

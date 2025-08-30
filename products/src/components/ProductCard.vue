@@ -13,10 +13,8 @@
         </span>
       </div>
     </div>
-    
     <div class="mt-4 space-y-2">
       <h3 class="product-title">{{ product.title }}</h3>
-      
       <div class="flex items-center justify-between">
         <span class="product-price">${{ product.price.toFixed(2) }}</span>
         <div class="product-rating">
@@ -25,9 +23,7 @@
           <span class="text-gray-500">({{ product.rating.count }})</span>
         </div>
       </div>
-      
       <p class="text-gray-600 text-sm line-clamp-2">{{ product.description }}</p>
-      
       <button
         @click.stop="addToCart"
         :disabled="addingToCart"
@@ -50,94 +46,74 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
 import { inject, ref } from 'vue';
 import { Product, EventBus } from '@microfrontend-ecommerce/shared';
-
 interface Props {
   product: Product;
 }
-
 const props = defineProps<Props>();
 const router = inject('router') as any;
 const eventBus = EventBus.getInstance();
 const addingToCart = ref(false);
-
 // Router and product validation (keep minimal logging)
 if (process.env.NODE_ENV === 'development') {
-  console.log('🔍 ProductCard: Router available:', !!router, 'Product ID:', props.product?.id);
 }
-
 const goToProduct = () => {
-  console.log('🔄 ProductCard: Navigation initiated for product:', props.product.id);
-  
   // Validate product ID first
   if (!props.product?.id) {
     console.error('❌ ProductCard: Invalid product - no ID available');
     return;
   }
-  
   const productId = props.product.id;
   const containerUrl = `/products/product/${productId}`;
   const vueRoute = `/product/${productId}`;
-  
-  console.log('🎯 ProductCard: URLs constructed:');
-  console.log('  Container URL:', containerUrl);
-  console.log('  Vue route:', vueRoute);
-  console.log('  Router available:', !!router);
-  
   // Update browser URL (container handles this)
   if (typeof window !== 'undefined') {
-    console.log('🌐 ProductCard: Updating browser URL to:', containerUrl);
     try {
       window.history.pushState({}, '', containerUrl);
-      console.log('✅ ProductCard: Browser URL updated successfully');
-      
       // Trigger popstate event to notify ReactWrapper
       window.dispatchEvent(new PopStateEvent('popstate', { state: {} }));
-      console.log('📡 ProductCard: PopState event dispatched');
-      
     } catch (error) {
       console.error('❌ ProductCard: Browser URL update failed:', error);
       return; // Don't attempt router navigation if URL update fails
     }
   }
-  
   // Vue router navigation with memory history (safe)
   if (router) {
-    console.log('🚀 ProductCard: Vue router navigation to:', vueRoute);
     router.push(vueRoute).then(() => {
-      console.log('✅ ProductCard: Vue router (memory) navigation successful');
     }).catch((error) => {
       console.error('❌ ProductCard: Vue router navigation failed:', error);
       // Don't worry about router errors with memory history
-      console.log('💡 ProductCard: Memory history error is acceptable, browser URL is updated');
     });
   } else {
-    console.log('📝 ProductCard: No Vue router available, browser URL should handle navigation');
   }
 };
-
 const addToCart = () => {
   addingToCart.value = true;
-  
-  console.log('🛒 ProductCard: Adding to cart:', props.product.title);
-  
-  // Emit event to container app
-  eventBus.emit('ADD_TO_CART', {
-    product: props.product,
-    quantity: 1,
-  });
-  
-  console.log('✅ ProductCard: ADD_TO_CART event emitted successfully');
-  
+  // Test EventBus functionality
+  if (eventBus && typeof eventBus.emit === 'function') {
+    // Emit event to container app
+    const cartData = {
+      product: props.product,
+      quantity: 1,
+    };
+    try {
+      eventBus.emit('ADD_TO_CART', cartData);
+      // Test immediate response
+      setTimeout(() => {
+      }, 100);
+    } catch (error) {
+      console.error('❌ ProductCard: Error emitting ADD_TO_CART:', error);
+    }
+  } else {
+    console.error('❌ ProductCard: EventBus or emit method not available!');
+  }
   // Reset button state after animation
   setTimeout(() => {
     addingToCart.value = false;
   }, 1500);
 };
-
 const handleImageError = (event: Event) => {
   const target = event.target as HTMLImageElement;
   target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y0ZjRmNCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkeT0iMC4zZW0iIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OTk5OSI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+';
