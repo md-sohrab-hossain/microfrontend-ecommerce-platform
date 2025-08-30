@@ -49,7 +49,17 @@ const CartContent: React.FC = () => {
     );
   }
   // Debug cart state before deciding whether to show EmptyCart
+  console.log('🔍 Cart App: Current state:', {
+    itemsLength: state.items.length,
+    itemCount: state.itemCount,
+    total: state.total,
+    items: state.items,
+    loading: state.loading,
+    error: state.error
+  });
+
   if (state.items.length === 0) {
+    console.log('📭 Cart App: Showing empty cart - no items found');
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
         <EmptyCart />
@@ -136,6 +146,8 @@ const CartContent: React.FC = () => {
 };
 // Main App component  
 const App: React.FC = () => {
+  console.log('🎬 Cart App: Component rendering...');
+  console.log('🔍 Cart App: Direct localStorage check:', localStorage.getItem('cart'));
   return (
     <CartProvider>
       <div className="min-h-screen bg-gray-50">

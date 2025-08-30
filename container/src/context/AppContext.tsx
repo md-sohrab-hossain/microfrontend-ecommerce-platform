@@ -23,6 +23,7 @@ type AppAction =
   | { type: 'REMOVE_FROM_CART'; payload: number }
   | { type: 'UPDATE_QUANTITY'; payload: { productId: number; quantity: number } }
   | { type: 'CLEAR_CART' }
+  | { type: 'LOAD_CART'; payload: CartItem[] }  // New action for initialization
   | { type: 'STORE_PRODUCT'; payload: Product };
 
 // Initial state
@@ -124,6 +125,28 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         cartCount: 0,
       };
     
+    case 'LOAD_CART':
+      // Load cart from localStorage - REPLACE not ADD quantities
+      const loadedProducts: Record<string, Product> = {};
+      action.payload.forEach((item: any) => {
+        if (item.product) {
+          loadedProducts[item.productId] = item.product;
+        }
+      });
+      
+      return {
+        ...state,
+        cart: action.payload.map((item: any) => ({
+          productId: item.productId,
+          quantity: item.quantity // Use exact quantity from localStorage, don't add
+        })),
+        cartCount: action.payload.reduce((total: number, item: any) => total + item.quantity, 0),
+        products: {
+          ...state.products,
+          ...loadedProducts
+        }
+      };
+    
     default:
       return state;
   }
@@ -162,19 +185,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       dispatch({ type: 'LOGIN_SUCCESS', payload: storedUser });
     }
     
-    // Load cart data
+    // Load cart data - Use LOAD_CART to REPLACE quantities, not ADD
     const storedCart = storage.get('cart');
-    if (storedCart && Array.isArray(storedCart)) {
-      // Process each cart item to restore state
-      storedCart.forEach((item: any) => {
-        if (item.product) {
-          dispatch({ type: 'ADD_TO_CART', payload: { 
-            productId: item.productId, 
-            quantity: item.quantity, 
-            product: item.product 
-          }});
-        }
-      });
+    if (storedCart && Array.isArray(storedCart) && storedCart.length > 0) {
+      console.log('🔄 Container: Loading cart from localStorage:', storedCart.length, 'items');
+      console.log('🔄 Container: Cart data:', storedCart);
+      
+      // Use LOAD_CART action to restore exact quantities from localStorage
+      dispatch({ type: 'LOAD_CART', payload: storedCart });
+      
+      console.log('✅ Container: Cart loaded with exact quantities (no doubling)');
+    } else {
+      console.log('🔄 Container: No saved cart found or empty cart');
     }
   }, []); // Run once on mount
 
