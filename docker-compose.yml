@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # Container App (React)
+  container:
+    build:
+      context: ./container
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - products
+      - cart
+      - auth
+    networks:
+      - microfrontend-network
+
+  # Products App (Vue.js)
+  products:
+    build:
+      context: ./products
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+    networks:
+      - microfrontend-network
+
+  # Cart App (React)
+  cart:
+    build:
+      context: ./cart
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+    networks:
+      - microfrontend-network
+
+  # Auth App (React)
+  auth:
+    build:
+      context: ./auth
+      dockerfile: Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=development
+    networks:
+      - microfrontend-network
+
+  # Shared package
+  shared:
+    build:
+      context: ./shared
+      dockerfile: Dockerfile
+    volumes:
+      - shared-dist:/app/dist
+    networks:
+      - microfrontend-network
+
+networks:
+  microfrontend-network:
+    driver: bridge
+
+volumes:
+  shared-dist:
