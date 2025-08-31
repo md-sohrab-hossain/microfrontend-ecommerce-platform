@@ -5,8 +5,7 @@ import {
   GlobalAction,
   globalStore,
 } from "@microfrontend-ecommerce/shared";
-import { Product, User, CartItem } from "@microfrontend-ecommerce/shared";
-import { safeLogout, safeEventBusEmit } from "../utils/safeLogout";
+import { Product, User } from "@microfrontend-ecommerce/shared";
 
 /**
  * React hook to use RxJS global store in Container app
@@ -54,21 +53,27 @@ export const useCart = () => {
   const error = useGlobalSelector("error");
 
   // Get cart with full product details
-  const cartWithProducts = cart.map((item) => {
-    const product = products.find((p) => p.id === item.productId);
+  const cartWithProducts = cart.map((item: { productId: any }) => {
+    const product = products.find((p: { id: any }) => p.id === item.productId);
     return { ...item, product };
   });
 
   // Calculate cart count and total
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const total = cartWithProducts.reduce((sum, item) => {
-    return sum + (item.product?.price || 0) * item.quantity;
-  }, 0);
+  const cartCount = cart.reduce(
+    (sum: any, item: { quantity: any }) => sum + item.quantity,
+    0
+  );
+  const total = cartWithProducts.reduce(
+    (sum: number, item: { product: { price: any }; quantity: number }) => {
+      return sum + (item.product?.price || 0) * item.quantity;
+    },
+    0
+  );
 
   const addToCart = useCallback(
     (productId: number, quantity: number, product: Product) => {
       // Store product info first if not already stored
-      if (!products.find((p) => p.id === productId)) {
+      if (!products.find((p: { id: number }) => p.id === productId)) {
         globalStore.setProducts([...products, product]);
       }
 
@@ -158,7 +163,7 @@ export const useProducts = () => {
 
   const storeProduct = useCallback((product: Product) => {
     const existingProducts = globalStore.getState().products;
-    if (!existingProducts.find((p) => p.id === product.id)) {
+    if (!existingProducts.find((p: any) => p.id === product.id)) {
       globalStore.setProducts([...existingProducts, product]);
     }
   }, []);
@@ -169,7 +174,7 @@ export const useProducts = () => {
 
   const getProduct = useCallback(
     (id: number): Product | undefined => {
-      return products.find((p) => p.id === id);
+      return products.find((p: any) => p.id === id);
     },
     [products]
   );
