@@ -73,6 +73,16 @@ microfrontends.forEach(mf => {
     fs.mkdirSync(targetDir, { recursive: true });
     copyDir(mfDistDir, targetDir);
     
+    // Ensure Vercel does not serve the microfrontend's own index.html directly
+    const mfIndex = path.join(targetDir, 'index.html');
+    if (fs.existsSync(mfIndex)) {
+      try {
+        fs.rmSync(mfIndex);
+      } catch (err) {
+        console.warn(`Could not remove ${mf}/index.html:`, err && err.message ? err.message : err);
+      }
+    }
+    
     // Verify remoteEntry.js exists
     const remoteEntryPath = path.join(targetDir, 'remoteEntry.js');
     if (fs.existsSync(remoteEntryPath)) {
