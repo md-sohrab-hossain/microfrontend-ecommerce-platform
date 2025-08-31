@@ -23,18 +23,8 @@
   </div>
 </template>
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { EventBus } from '@microfrontend-ecommerce/shared';
+import { ref } from 'vue';
 const showDebugBoxes = ref(false); // Toggle debug boxes - set to false for clean UI
-// Setup event bus for microfrontend communication
-onMounted(() => {
-  const eventBus = EventBus.getInstance();
-  // Listen for container events if needed
-  eventBus.on('USER_LOGIN', (data: any) => {
-  });
-  eventBus.on('USER_LOGOUT', () => {
-  });
-});
 </script>
 <style scoped>
 .products-microfrontend {

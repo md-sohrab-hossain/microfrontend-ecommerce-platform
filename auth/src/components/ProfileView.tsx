@@ -1,19 +1,41 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useAuthRxJS } from '../hooks/useRxJSStore';
 import { formatCurrency } from '@microfrontend-ecommerce/shared';
 
 const ProfileView: React.FC = () => {
   const { state, logout } = useAuth();
+  const rxjsAuth = useAuthRxJS();
 
-  if (!state.isAuthenticated || !state.user) {
+  // Get user from RxJS store first, fallback to local state
+  const currentUser = rxjsAuth.user || state.user;
+  const isAuthenticated = rxjsAuth.isAuthenticated || state.isAuthenticated;
+
+  if (!isAuthenticated || !currentUser) {
     return null;
   }
 
-  const { user } = state;
+  const user = currentUser;
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to sign out?')) {
-      logout();
+      try {
+        // Clear global store if available
+        const globalStore = window.__GLOBAL_STORE__;
+        if (globalStore) {
+          globalStore.setUser(null);
+          globalStore.clearCart();
+        }
+        
+        // Also call local logout as fallback
+        logout();
+      } catch (error) {
+        console.error('Logout error:', error);
+        // Fallback to simple redirect
+        if (typeof window !== 'undefined') {
+          window.location.href = '/';
+        }
+      }
     }
   };
 

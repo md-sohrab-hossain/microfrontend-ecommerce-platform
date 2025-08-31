@@ -78,6 +78,7 @@ const Header: React.FC = () => {
                   <Link
                     to="/auth"
                     className="flex items-center px-3 py-2 space-x-2 transition-colors rounded-md hover:bg-gray-50"
+                    title="View Profile"
                   >
                     <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary-100">
                       <span className="text-sm font-medium text-primary-600">
@@ -96,7 +97,13 @@ const Header: React.FC = () => {
                         e.preventDefault();
                         e.stopPropagation();
                         await logout();
-                      } catch (error) {}
+                      } catch (error) {
+                        console.error('Logout error:', error);
+                        // Fallback redirect
+                        if (typeof window !== 'undefined') {
+                          window.location.href = '/';
+                        }
+                      }
                     }}
                     className="flex items-center px-4 py-2 space-x-1 text-sm font-medium text-white transition-colors bg-red-500 rounded-md hover:bg-red-600"
                   >

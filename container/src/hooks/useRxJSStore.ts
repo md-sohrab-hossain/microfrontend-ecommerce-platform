@@ -115,47 +115,28 @@ export const useAuth = () => {
     globalStore.setUser(user);
   }, []);
 
-  // Internal logout - doesn't emit events (used by AuthBridge)
-  const internalLogout = useCallback(async (skipRedirect = false) => {
+  // Simple logout - just clear store and redirect
+  const logout = useCallback(async () => {
     try {
-      // Update RxJS global store
+      // Clear RxJS global store
       globalStore.setUser(null);
       globalStore.clearCart();
 
-      if (!skipRedirect) {
-        // Use safe redirect method
-        setTimeout(async () => {
-          await safeLogout();
-        }, 100);
-      }
+      // Simple redirect to home
+      setTimeout(() => {
+        if (typeof window !== "undefined") {
+          window.location.href = "/";
+        }
+      }, 100);
     } catch (error) {
+      // Fallback
       globalStore.setUser(null);
       globalStore.clearCart();
-
-      if (!skipRedirect) {
-        await safeLogout();
+      if (typeof window !== "undefined") {
+        window.location.href = "/";
       }
     }
   }, []);
-
-  // User-initiated logout - emits events to notify Auth app
-  const logout = useCallback(async () => {
-    try {
-      // Perform internal logout first
-      await internalLogout(true); // Skip redirect initially
-
-      // Safely emit EventBus event to notify Auth app
-      await safeEventBusEmit("USER_LOGOUT");
-
-      // Now redirect
-      setTimeout(async () => {
-        await safeLogout();
-      }, 200);
-    } catch (error) {
-      // Fallback to internal logout
-      await internalLogout();
-    }
-  }, [internalLogout]);
 
   return {
     isAuthenticated: !!user,
@@ -164,7 +145,6 @@ export const useAuth = () => {
     error,
     login,
     logout,
-    internalLogout, // For AuthBridge to use
   };
 };
 

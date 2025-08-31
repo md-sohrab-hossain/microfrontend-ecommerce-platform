@@ -1,7 +1,13 @@
 import React, { createContext, useContext, useEffect, ReactNode } from "react";
 import { User, Product, globalStore } from "@microfrontend-ecommerce/shared";
 import { useCart, useAuth, useProducts } from "../hooks/useRxJSStore";
-import AuthBridge from "../components/AuthBridge";
+
+// Extend window interface
+declare global {
+  interface Window {
+    __GLOBAL_STORE__: any;
+  }
+}
 
 // Simplified app state interface (keeping compatibility)
 interface AppState {
@@ -82,6 +88,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Initialize auth state on mount
   useEffect(() => {
+    // Expose global store to window for microfrontends
+    window.__GLOBAL_STORE__ = globalStore;
+
     // The global store constructor already handles loading from localStorage
     // But we can trigger a re-check here if needed
     const currentUser = globalStore.getState().user;
@@ -113,7 +122,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         storeProduct,
       }}
     >
-      <AuthBridge />
       {children}
     </AppContext.Provider>
   );

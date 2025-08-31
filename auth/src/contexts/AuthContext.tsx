@@ -1,5 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, LoginCredentials, authApi, storage, EventBus } from '@microfrontend-ecommerce/shared';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import {
+  User,
+  LoginCredentials,
+  authApi,
+  storage,
+} from "@microfrontend-ecommerce/shared";
 
 // Auth state interface
 interface AuthState {
@@ -34,15 +45,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error: null,
   });
 
-  const eventBus = EventBus.getInstance();
-
   // Load auth state from storage on mount
   useEffect(() => {
-    const savedToken = storage.get('authToken');
-    const savedUser = storage.get('authUser');
-    
+    const savedToken = storage.get("authToken");
+    const savedUser = storage.get("authUser");
+
     if (savedToken && savedUser) {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         user: savedUser,
         token: savedToken,
@@ -51,64 +60,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Listen for logout events from other microfrontends
-  useEffect(() => {
-    const handleExternalLogout = () => {
-      // Internal logout without emitting event (to prevent loops)
-      storage.remove('authToken');
-      storage.remove('authUser');
-
-      setState({
-        user: null,
-        token: null,
-        isAuthenticated: false,
-        loading: false,
-        error: null,
-      });
-    };
-
-    eventBus.on('USER_LOGOUT', handleExternalLogout);
-
-    return () => {
-      eventBus.off('USER_LOGOUT', handleExternalLogout);
-    };
-  }, []); // Empty dependency array since handler is self-contained
-
   const login = async (credentials: LoginCredentials): Promise<boolean> => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
+    setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
       const authResponse = await authApi.login(credentials);
-      
+
       // For demo purposes, we'll create a mock user based on the credentials
       // In a real app, you'd get the user data from the API response
       const mockUser: User = {
         id: 1,
         email: credentials.username,
         username: credentials.username,
-        password: '', // Don't store password
+        password: "", // Don't store password
         name: {
-          firstname: credentials.username.split('@')[0] || 'User',
-          lastname: 'Demo',
+          firstname: credentials.username.split("@")[0] || "User",
+          lastname: "Demo",
         },
         address: {
-          city: 'Demo City',
-          street: '123 Demo St',
+          city: "Demo City",
+          street: "123 Demo St",
           number: 1,
-          zipcode: '12345',
+          zipcode: "12345",
           geolocation: {
-            lat: '0',
-            long: '0',
+            lat: "0",
+            long: "0",
           },
         },
-        phone: '555-0123',
+        phone: "555-0123",
       };
 
       // Save to storage
-      storage.set('authToken', authResponse.token);
-      storage.set('authUser', mockUser);
+      storage.set("authToken", authResponse.token);
+      storage.set("authUser", mockUser);
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         user: mockUser,
         token: authResponse.token,
@@ -116,16 +102,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         loading: false,
       }));
 
-      // Emit login event to other microfrontends
-      eventBus.emit('USER_LOGIN', {
-        user: mockUser,
-        token: authResponse.token,
-      });
-
       return true;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Login failed';
-      setState(prev => ({
+      const errorMessage =
+        error instanceof Error ? error.message : "Login failed";
+      setState((prev) => ({
         ...prev,
         loading: false,
         error: errorMessage,
@@ -136,8 +117,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     // Clear storage
-    storage.remove('authToken');
-    storage.remove('authUser');
+    storage.remove("authToken");
+    storage.remove("authUser");
 
     setState({
       user: null,
@@ -147,18 +128,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       error: null,
     });
 
-    // Emit logout event to other microfrontends
-    eventBus.emit('USER_LOGOUT');
-
     // Navigate to home page
-    eventBus.emit('NAVIGATE', { path: '/' });
-    if (typeof window !== 'undefined') {
-      window.location.href = '/';
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
     }
   };
 
   const clearError = () => {
-    setState(prev => ({ ...prev, error: null }));
+    setState((prev) => ({ ...prev, error: null }));
   };
 
   return (
@@ -179,7 +156,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

@@ -177,21 +177,6 @@ export class GlobalStore {
 
   clearCart(): void {
     this.dispatch({ type: "CLEAR_CART" });
-
-    // Safely emit EventBus event to notify other microfrontends
-    setTimeout(() => {
-      try {
-        // Use dynamic import to avoid circular dependencies
-        import("../utils")
-          .then((utilsModule) => {
-            const eventBus = utilsModule.EventBus.getInstance();
-            if (eventBus && typeof eventBus.emit === "function") {
-              eventBus.emit("CART_CLEARED", {});
-            }
-          })
-          .catch((error) => {});
-      } catch (error) {}
-    }, 50);
   }
 
   // Convenience methods for user operations
