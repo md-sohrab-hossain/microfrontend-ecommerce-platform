@@ -32,7 +32,11 @@ module.exports = {
   plugins: [
     new ModuleFederationPlugin({
       name: 'container',
-      remotes: {
+      remotes: process.env.NODE_ENV === 'production' ? {
+        products: 'products@./products/remoteEntry.js',
+        cart: 'cart@./cart/remoteEntry.js', 
+        auth: 'auth@./auth/remoteEntry.js',
+      } : {
         products: 'products@http://localhost:3001/remoteEntry.js',
         cart: 'cart@http://localhost:3002/remoteEntry.js',
         auth: 'auth@http://localhost:3003/remoteEntry.js',

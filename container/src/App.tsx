@@ -8,6 +8,7 @@ import MicrofrontendWrapper from './components/MicrofrontendWrapper';
 import RemoteProductsApp from './components/RemoteProductsApp';
 import RemoteCartApp from './components/RemoteCartApp';
 import RemoteAuthApp from './components/RemoteAuthApp';
+import ErrorBoundary from './components/ErrorBoundary';
 // Debug components removed for clean UI
 // import SimpleAddToCartTest from './components/SimpleAddToCartTest';
 // RxJS Test Panel removed as requested
@@ -29,16 +30,16 @@ function App() {
               <Route
                 path="/products/*"
                 element={
-                  <div>
+                  <ErrorBoundary microfrontendName="Products">
                     {showDebugBoxes && (
                       <div style={{ padding: '10px', background: '#f3e5f5', border: '1px solid #9c27b0', margin: '10px 0' }}>
-                        <strong>🛣️ Container Debug:</strong> Products route matched (/products/*)
+                        <strong>Container Debug:</strong> Products route matched (/products/*)
                       </div>
                     )}
                     <MicrofrontendWrapper>
                       <RemoteProductsApp />
                     </MicrofrontendWrapper>
-                  </div>
+                  </ErrorBoundary>
                 }
               />
               
@@ -46,9 +47,11 @@ function App() {
               <Route
                 path="/cart/*"
                 element={
-                  <MicrofrontendWrapper>
-                    <RemoteCartApp />
-                  </MicrofrontendWrapper>
+                  <ErrorBoundary microfrontendName="Cart">
+                    <MicrofrontendWrapper>
+                      <RemoteCartApp />
+                    </MicrofrontendWrapper>
+                  </ErrorBoundary>
                 }
               />
               
@@ -56,9 +59,11 @@ function App() {
               <Route
                 path="/auth/*"
                 element={
-                  <MicrofrontendWrapper>
-                    <RemoteAuthApp />
-                  </MicrofrontendWrapper>
+                  <ErrorBoundary microfrontendName="Auth">
+                    <MicrofrontendWrapper>
+                      <RemoteAuthApp />
+                    </MicrofrontendWrapper>
+                  </ErrorBoundary>
                 }
               />
             </Routes>

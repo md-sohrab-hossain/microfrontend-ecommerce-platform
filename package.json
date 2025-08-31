@@ -15,7 +15,7 @@
     "dev:products": "cd products && npm run dev",
     "dev:cart": "cd cart && npm run dev", 
     "dev:auth": "cd auth && npm run dev",
-    "build:all": "npm run build:shared && npm run build:products && npm run build:cart && npm run build:auth && npm run build:container",
+    "build:all": "npm run build:shared && npm run build:products && npm run build:cart && npm run build:auth && npm run build:container && node scripts/copy-builds.js",
     "build:container": "cd container && npm run build",
     "build:products": "cd products && npm run build",
     "build:cart": "cd cart && npm run build",
