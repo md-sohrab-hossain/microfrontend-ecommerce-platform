@@ -1,8 +1,8 @@
-# 🏗️ Microfrontend Setup Guide - Step by Step
+# Microfrontend Setup Guide - Complete Tutorial
 
-আপনি নিজে থেকে একটা complete microfrontend application বানাতে চান? এই guide follow করুন!
+This comprehensive guide walks you through building a microfrontend e-commerce application from scratch using Webpack Module Federation, React, Vue 3, and RxJS.
 
-## 📋 Table of Contents
+## Table of Contents
 
 1. [Prerequisites](#prerequisites)
 2. [Project Structure](#project-structure)
@@ -13,109 +13,112 @@
 7. [Auth Microfrontend (React)](#auth-microfrontend-react)
 8. [Module Federation Configuration](#module-federation-configuration)
 9. [RxJS Global Store Implementation](#rxjs-global-store-implementation)
-10. [Communication Setup](#communication-setup)
-11. [Testing & Deployment](#testing--deployment)
+10. [Testing & Deployment](#testing--deployment)
 
 ---
 
-## 🛠️ Prerequisites
+## Prerequisites
 
-### Required Software:
+### Required Software
 
 ```bash
 # Node.js (Version 16+)
 node --version  # Should be 16.0.0+
 
-# NPM or Yarn
+# NPM
 npm --version   # Should be 8.0.0+
 
 # Git
 git --version
 ```
 
-### Knowledge Requirements:
-- ✅ Basic JavaScript/TypeScript
-- ✅ React fundamentals 
-- ✅ Vue.js basics (for Products app)
-- ✅ Webpack basics
-- ✅ npm/package.json understanding
+### Knowledge Requirements
+- Basic JavaScript/TypeScript
+- React fundamentals
+- Vue.js basics (for Products app)
+- Webpack basics
+- npm/package.json understanding
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
-### 1. Create Root Directory:
+### 1. Create Root Directory
 
 ```bash
-mkdir my-microfrontend-app
-cd my-microfrontend-app
+mkdir microfrontend-ecommerce
+cd microfrontend-ecommerce
 
 # Initialize root package.json
 npm init -y
 ```
 
-### 2. Create Folder Structure:
+### 2. Create Folder Structure
 
 ```bash
 mkdir container products cart auth shared
-mkdir docs scripts configs
+mkdir scripts
 
 # Your structure should look like:
-my-microfrontend-app/
-├── container/        # Host application (React)
-├── products/         # Products app (Vue.js)  
-├── cart/            # Cart app (React)
-├── auth/            # Auth app (React)
-├── shared/          # Shared utilities
-├── docs/            # Documentation
-├── scripts/         # Build scripts
-└── configs/         # Global configs
+```
+
+```mermaid
+graph TD
+    A[microfrontend-ecommerce/] --> B[container/ - Host React app]
+    A --> C[products/ - Vue.js products]
+    A --> D[cart/ - React cart]
+    A --> E[auth/ - React auth]
+    A --> F[shared/ - Types + RxJS store]
+    A --> G[scripts/ - Build scripts]
 ```
 
 ---
 
-## 📚 Shared Library Setup
+## Shared Library Setup
 
-### 1. Initialize Shared Library:
+The shared library provides types, utilities, and the centralized RxJS Global Store.
+
+### 1. Initialize Shared Library
 
 ```bash
 cd shared
 npm init -y
 ```
 
-### 2. Install Dependencies:
+### 2. Install Dependencies
 
 ```bash
-npm install rxjs typescript
-
-# Dev dependencies
-npm install --save-dev @types/node webpack webpack-cli ts-loader typescript
+npm install rxjs axios
+npm install --save-dev typescript @types/node rimraf
 ```
 
-### 3. Create package.json:
+### 3. Create package.json
 
 ```json
 {
-  "name": "@my-app/shared",
+  "name": "@microfrontend-ecommerce/shared",
   "version": "1.0.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "webpack --mode=production",
-    "build:dev": "webpack --mode=development",
-    "build:watch": "webpack --mode=development --watch"
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rimraf dist"
   },
   "dependencies": {
-    "rxjs": "^7.8.0"
+    "rxjs": "^7.8.0",
+    "axios": "^1.6.0"
   },
-  "peerDependencies": {
-    "react": "^18.0.0",
-    "vue": "^3.0.0"
-  }
+  "devDependencies": {
+    "typescript": "^5.2.0",
+    "rimraf": "^5.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "files": ["dist"]
 }
 ```
 
-### 4. TypeScript Configuration (tsconfig.json):
+### 4. TypeScript Configuration (tsconfig.json)
 
 ```json
 {
@@ -139,45 +142,8 @@ npm install --save-dev @types/node webpack webpack-cli ts-loader typescript
 }
 ```
 
-### 5. Webpack Configuration (webpack.config.js):
+### 5. Create Core Types (src/types/index.ts)
 
-```javascript
-const path = require('path');
-
-module.exports = {
-  entry: './src/index.ts',
-  mode: 'development',
-  module: {
-    rules: [
-      {
-        test: /\.tsx?$/,
-        use: 'ts-loader',
-        exclude: /node_modules/,
-      },
-    ],
-  },
-  resolve: {
-    extensions: ['.tsx', '.ts', '.js'],
-  },
-  output: {
-    filename: 'index.js',
-    path: path.resolve(__dirname, 'dist'),
-    library: {
-      name: 'SharedLib',
-      type: 'umd',
-    },
-    globalObject: 'this',
-  },
-  externals: {
-    'react': 'React',
-    'vue': 'Vue',
-  },
-};
-```
-
-### 6. Create Core Files:
-
-**src/types/index.ts:**
 ```typescript
 export interface User {
   id: number;
@@ -219,55 +185,205 @@ export interface CartItem {
   quantity: number;
 }
 
+export interface LoginCredentials {
+  username: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  token: string;
+}
+```
+
+### 6. Create RxJS Global Store (src/store/GlobalStore.ts)
+
+```typescript
+import { BehaviorSubject, Observable, map, distinctUntilChanged } from "rxjs";
+import { CartItem, Product, User } from "../types";
+
 export interface GlobalState {
-  user: User | null;
   cart: CartItem[];
+  user: User | null;
   products: Product[];
   loading: boolean;
   error: string | null;
 }
-```
 
-**src/utils/EventBus.ts:**
-```typescript
-export class EventBus {
-  private static instance: EventBus;
-  private events: { [key: string]: Function[] } = {};
+export type GlobalAction =
+  | { type: "SET_LOADING"; payload: boolean }
+  | { type: "SET_ERROR"; payload: string | null }
+  | { type: "SET_USER"; payload: User | null }
+  | { type: "SET_PRODUCTS"; payload: Product[] }
+  | { type: "ADD_TO_CART"; payload: { product: Product; quantity: number } }
+  | { type: "REMOVE_FROM_CART"; payload: number }
+  | { type: "UPDATE_CART_QUANTITY"; payload: { productId: number; quantity: number } }
+  | { type: "CLEAR_CART" }
+  | { type: "LOAD_CART"; payload: CartItem[] };
 
-  private constructor() {}
+const initialState: GlobalState = {
+  cart: [],
+  user: null,
+  products: [],
+  loading: false,
+  error: null,
+};
 
-  static getInstance(): EventBus {
-    if (!EventBus.instance) {
-      EventBus.instance = new EventBus();
-    }
-    return EventBus.instance;
+export class GlobalStore {
+  private static instance: GlobalStore;
+  private state$ = new BehaviorSubject<GlobalState>(initialState);
+  private storageKey = "microfrontend-global-state";
+
+  protected constructor() {
+    this.loadFromStorage();
+    this.setupStoragePersistence();
   }
 
-  on(event: string, callback: Function): void {
-    if (!this.events[event]) {
-      this.events[event] = [];
+  public static getInstance(): GlobalStore {
+    if (!GlobalStore.instance) {
+      GlobalStore.instance = new GlobalStore();
     }
-    this.events[event].push(callback);
+    return GlobalStore.instance;
   }
 
-  emit(event: string, data?: any): void {
-    if (this.events[event]) {
-      this.events[event].forEach(callback => callback(data));
+  getState(): GlobalState {
+    return this.state$.value;
+  }
+
+  getState$(): Observable<GlobalState> {
+    return this.state$.asObservable();
+  }
+
+  select<K extends keyof GlobalState>(key: K): Observable<GlobalState[K]> {
+    return this.state$.pipe(
+      map((state) => state[key]),
+      distinctUntilChanged()
+    );
+  }
+
+  dispatch(action: GlobalAction): void {
+    const currentState = this.state$.value;
+    const newState = this.reducer(currentState, action);
+    this.state$.next(newState);
+  }
+
+  // Convenience methods
+  addToCart(product: Product, quantity: number = 1): void {
+    this.dispatch({ type: "ADD_TO_CART", payload: { product, quantity } });
+  }
+
+  removeFromCart(productId: number): void {
+    this.dispatch({ type: "REMOVE_FROM_CART", payload: productId });
+  }
+
+  updateCartQuantity(productId: number, quantity: number): void {
+    this.dispatch({ type: "UPDATE_CART_QUANTITY", payload: { productId, quantity } });
+  }
+
+  clearCart(): void {
+    this.dispatch({ type: "CLEAR_CART" });
+  }
+
+  setUser(user: User | null): void {
+    this.dispatch({ type: "SET_USER", payload: user });
+  }
+
+  setProducts(products: Product[]): void {
+    this.dispatch({ type: "SET_PRODUCTS", payload: products });
+  }
+
+  private reducer(state: GlobalState, action: GlobalAction): GlobalState {
+    switch (action.type) {
+      case "SET_LOADING":
+        return { ...state, loading: action.payload };
+      case "SET_ERROR":
+        return { ...state, error: action.payload };
+      case "SET_USER":
+        return { ...state, user: action.payload };
+      case "SET_PRODUCTS":
+        return { ...state, products: action.payload };
+      case "ADD_TO_CART": {
+        const existingIndex = state.cart.findIndex(
+          (item) => item.productId === action.payload.product.id
+        );
+        if (existingIndex >= 0) {
+          return {
+            ...state,
+            cart: state.cart.map((item, index) =>
+              index === existingIndex
+                ? { ...item, quantity: item.quantity + action.payload.quantity }
+                : item
+            ),
+          };
+        } else {
+          return {
+            ...state,
+            cart: [...state.cart, { productId: action.payload.product.id, quantity: action.payload.quantity }],
+          };
+        }
+      }
+      case "REMOVE_FROM_CART":
+        return {
+          ...state,
+          cart: state.cart.filter((item) => item.productId !== action.payload),
+        };
+      case "UPDATE_CART_QUANTITY":
+        return {
+          ...state,
+          cart: state.cart
+            .map((item) =>
+              item.productId === action.payload.productId
+                ? { ...item, quantity: action.payload.quantity }
+                : item
+            )
+            .filter((item) => item.quantity > 0),
+        };
+      case "CLEAR_CART":
+        return { ...state, cart: [] };
+      case "LOAD_CART":
+        return { ...state, cart: action.payload };
+      default:
+        return state;
     }
   }
 
-  off(event: string, callback: Function): void {
-    if (this.events[event]) {
-      this.events[event] = this.events[event].filter(cb => cb !== callback);
+  private loadFromStorage(): void {
+    try {
+      const stored = localStorage.getItem(this.storageKey);
+      if (stored) {
+        const parsedState = JSON.parse(stored);
+        this.dispatch({ type: "LOAD_CART", payload: parsedState.cart || [] });
+        if (parsedState.user) {
+          this.dispatch({ type: "SET_USER", payload: parsedState.user });
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load from storage:", error);
     }
+  }
+
+  private setupStoragePersistence(): void {
+    this.state$.subscribe((state) => {
+      try {
+        const persistentState = {
+          cart: state.cart,
+          user: state.user,
+        };
+        localStorage.setItem(this.storageKey, JSON.stringify(persistentState));
+      } catch (error) {
+        console.error("Failed to persist state:", error);
+      }
+    });
   }
 }
+
+export const globalStore = GlobalStore.getInstance();
 ```
 
-**src/utils/storage.ts:**
+### 7. Create Storage Utilities (src/utils/index.ts)
+
 ```typescript
 export const storage = {
-  get: (key: string) => {
+  get: (key: string): any => {
     try {
       const item = localStorage.getItem(key);
       return item ? JSON.parse(item) : null;
@@ -295,230 +411,81 @@ export const storage = {
 };
 ```
 
-**src/store/GlobalStore.ts:**
+### 8. Create API Functions (src/api/index.ts)
+
 ```typescript
-import { BehaviorSubject, Observable } from 'rxjs';
-import { map, distinctUntilChanged } from 'rxjs/operators';
-import { GlobalState, User, Product, CartItem } from '../types';
-import { storage } from '../utils/storage';
+import axios from 'axios';
+import { LoginCredentials, AuthResponse, Product } from '../types';
 
-export type GlobalAction = 
-  | { type: 'SET_USER'; payload: User | null }
-  | { type: 'SET_PRODUCTS'; payload: Product[] }
-  | { type: 'ADD_TO_CART'; payload: { product: Product; quantity: number } }
-  | { type: 'REMOVE_FROM_CART'; payload: number }
-  | { type: 'UPDATE_CART_QUANTITY'; payload: { productId: number; quantity: number } }
-  | { type: 'CLEAR_CART' }
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string | null };
+const API_BASE = 'https://fakestoreapi.com';
 
-const initialState: GlobalState = {
-  user: null,
-  cart: [],
-  products: [],
-  loading: false,
-  error: null,
+export const authApi = {
+  login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
+    const response = await axios.post(`${API_BASE}/auth/login`, credentials);
+    return response.data;
+  }
 };
 
-class GlobalStore {
-  private static instance: GlobalStore;
-  private state$ = new BehaviorSubject<GlobalState>(initialState);
-
-  private constructor() {
-    this.loadFromStorage();
-    this.setupStoragePersistence();
+export const productsApi = {
+  getAll: async (): Promise<Product[]> => {
+    const response = await axios.get(`${API_BASE}/products`);
+    return response.data;
+  },
+  
+  getProduct: async (id: number): Promise<Product> => {
+    const response = await axios.get(`${API_BASE}/products/${id}`);
+    return response.data;
   }
-
-  static getInstance(): GlobalStore {
-    if (!GlobalStore.instance) {
-      GlobalStore.instance = new GlobalStore();
-    }
-    return GlobalStore.instance;
-  }
-
-  // Get current state
-  getState(): GlobalState {
-    return this.state$.value;
-  }
-
-  // Subscribe to state changes
-  subscribe(callback: (state: GlobalState) => void): () => void {
-    const subscription = this.state$.subscribe(callback);
-    return () => subscription.unsubscribe();
-  }
-
-  // Select specific part of state
-  select<K extends keyof GlobalState>(key: K): Observable<GlobalState[K]> {
-    return this.state$.pipe(
-      map(state => state[key]),
-      distinctUntilChanged()
-    );
-  }
-
-  // Dispatch actions
-  dispatch(action: GlobalAction): void {
-    const currentState = this.state$.value;
-    const newState = this.reducer(currentState, action);
-    this.state$.next(newState);
-  }
-
-  private reducer(state: GlobalState, action: GlobalAction): GlobalState {
-    switch (action.type) {
-      case 'SET_USER':
-        return { ...state, user: action.payload };
-      
-      case 'SET_PRODUCTS':
-        return { ...state, products: action.payload };
-      
-      case 'ADD_TO_CART':
-        const existingItem = state.cart.find(item => item.productId === action.payload.product.id);
-        if (existingItem) {
-          return {
-            ...state,
-            cart: state.cart.map(item =>
-              item.productId === action.payload.product.id
-                ? { ...item, quantity: item.quantity + action.payload.quantity }
-                : item
-            )
-          };
-        } else {
-          return {
-            ...state,
-            cart: [...state.cart, { productId: action.payload.product.id, quantity: action.payload.quantity }]
-          };
-        }
-      
-      case 'REMOVE_FROM_CART':
-        return {
-          ...state,
-          cart: state.cart.filter(item => item.productId !== action.payload)
-        };
-      
-      case 'UPDATE_CART_QUANTITY':
-        return {
-          ...state,
-          cart: state.cart.map(item =>
-            item.productId === action.payload.productId
-              ? { ...item, quantity: action.payload.quantity }
-              : item
-          )
-        };
-      
-      case 'CLEAR_CART':
-        return { ...state, cart: [] };
-      
-      case 'SET_LOADING':
-        return { ...state, loading: action.payload };
-      
-      case 'SET_ERROR':
-        return { ...state, error: action.payload };
-      
-      default:
-        return state;
-    }
-  }
-
-  // Convenience methods
-  setUser(user: User | null): void {
-    this.dispatch({ type: 'SET_USER', payload: user });
-  }
-
-  setProducts(products: Product[]): void {
-    this.dispatch({ type: 'SET_PRODUCTS', payload: products });
-  }
-
-  addToCart(product: Product, quantity: number): void {
-    this.dispatch({ type: 'ADD_TO_CART', payload: { product, quantity } });
-  }
-
-  removeFromCart(productId: number): void {
-    this.dispatch({ type: 'REMOVE_FROM_CART', payload: productId });
-  }
-
-  updateCartQuantity(productId: number, quantity: number): void {
-    this.dispatch({ type: 'UPDATE_CART_QUANTITY', payload: { productId, quantity } });
-  }
-
-  clearCart(): void {
-    this.dispatch({ type: 'CLEAR_CART' });
-  }
-
-  private loadFromStorage(): void {
-    try {
-      const user = storage.get('user') || storage.get('authUser');
-      const cart = storage.get('cart');
-      
-      if (user) this.setUser(user);
-      if (cart) this.dispatch({ type: 'SET_CART', payload: cart });
-    } catch (error) {
-      console.error('Failed to load from storage:', error);
-    }
-  }
-
-  private setupStoragePersistence(): void {
-    this.select('user').subscribe(user => {
-      if (user) {
-        storage.set('user', user);
-        storage.set('authUser', user); // Legacy compatibility
-      } else {
-        storage.remove('user');
-        storage.remove('authUser');
-      }
-    });
-
-    this.select('cart').subscribe(cart => {
-      storage.set('cart', cart);
-    });
-  }
-}
-
-export const globalStore = GlobalStore.getInstance();
-export { GlobalStore };
+};
 ```
 
-**src/index.ts:**
+### 9. Create Main Export (src/index.ts)
+
 ```typescript
-// Types
+// Export all types
 export * from './types';
 
-// Store
-export { GlobalStore, globalStore } from './store/GlobalStore';
-export type { GlobalAction } from './store/GlobalStore';
+// Export all API functions
+export * from './api';
 
-// Utils
-export { EventBus } from './utils/EventBus';
-export { storage } from './utils/storage';
+// Export all utilities
+export * from './utils';
+
+// Export RxJS Global Store
+export { GlobalStore, globalStore } from './store/GlobalStore';
 ```
 
 ---
 
-## 🏠 Container App Setup
+## Container App Setup
 
-### 1. Initialize Container:
+The container app serves as the host application that loads and orchestrates all microfrontends.
+
+### 1. Initialize Container
 
 ```bash
 cd ../container
 npm init -y
 ```
 
-### 2. Install Dependencies:
+### 2. Install Dependencies
 
 ```bash
 # React dependencies
 npm install react react-dom react-router-dom
 
 # Development dependencies
-npm install --save-dev @types/react @types/react-dom typescript webpack webpack-cli webpack-dev-server html-webpack-plugin ts-loader css-loader style-loader
+npm install --save-dev @types/react @types/react-dom typescript webpack webpack-cli webpack-dev-server html-webpack-plugin babel-loader @babel/core @babel/preset-react @babel/preset-typescript css-loader style-loader postcss-loader tailwindcss autoprefixer
 
 # Local shared library
 npm install ../shared
 ```
 
-### 3. Create package.json:
+### 3. Create package.json
 
 ```json
 {
-  "name": "container",
+  "name": "@microfrontend-ecommerce/container",
   "version": "1.0.0",
   "scripts": {
     "start": "webpack serve --mode=development",
@@ -529,65 +496,99 @@ npm install ../shared
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.8.0",
-    "@my-app/shared": "file:../shared"
+    "@microfrontend-ecommerce/shared": "file:../shared"
   }
 }
 ```
 
-### 4. Webpack Configuration (webpack.config.js):
+### 4. Webpack Configuration (webpack.config.js)
 
 ```javascript
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const ModuleFederationPlugin = require('@module-federation/webpack');
+const { ModuleFederationPlugin } = require('webpack').container;
 
-module.exports = {
-  entry: './src/index.tsx',
-  mode: 'development',
-  devServer: {
-    port: 4000,
-    historyApiFallback: true,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
+module.exports = (env = {}, argv = {}) => {
+  const isProd = argv.mode === 'production';
+
+  return {
+    mode: isProd ? 'production' : 'development',
+    entry: './src/index.tsx',
+    devServer: {
+      port: 3000,
+      historyApiFallback: true,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+      },
     },
-  },
-  resolve: {
-    extensions: ['.tsx', '.ts', '.js'],
-  },
-  module: {
-    rules: [
-      {
-        test: /\.tsx?$/,
-        loader: 'ts-loader',
-        exclude: /node_modules/,
-      },
-      {
-        test: /\.css$/i,
-        use: ['style-loader', 'css-loader'],
-      },
+    resolve: {
+      extensions: ['.tsx', '.ts', '.js'],
+    },
+    module: {
+      rules: [
+        {
+          test: /\.(js|jsx|ts|tsx)$/,
+          exclude: /node_modules/,
+          use: {
+            loader: 'babel-loader',
+            options: {
+              presets: ['@babel/preset-react', '@babel/preset-typescript'],
+            },
+          },
+        },
+        {
+          test: /\.css$/i,
+          use: ['style-loader', 'css-loader', 'postcss-loader'],
+        },
+      ],
+    },
+    plugins: [
+      new ModuleFederationPlugin({
+        name: 'container',
+        remotes: isProd
+          ? {
+              products: 'products@/products/remoteEntry.js',
+              cart: 'cart@/cart/remoteEntry.js',
+              auth: 'auth@/auth/remoteEntry.js',
+            }
+          : {
+              products: 'products@http://localhost:3001/remoteEntry.js',
+              cart: 'cart@http://localhost:3002/remoteEntry.js',
+              auth: 'auth@http://localhost:3003/remoteEntry.js',
+            },
+        shared: {
+          react: { singleton: true, eager: false, requiredVersion: '^18.2.0' },
+          'react-dom': { singleton: true, eager: false, requiredVersion: '^18.2.0' },
+          'react-router-dom': { singleton: true, eager: false, requiredVersion: '^6.8.0' },
+          '@microfrontend-ecommerce/shared': { singleton: true, eager: false },
+        },
+      }),
+      new HtmlWebpackPlugin({
+        template: './public/index.html',
+      }),
     ],
-  },
-  plugins: [
-    new ModuleFederationPlugin({
-      name: 'container',
-      remotes: {
-        products: 'products@http://localhost:4001/remoteEntry.js',
-        cart: 'cart@http://localhost:4002/remoteEntry.js',
-        auth: 'auth@http://localhost:4003/remoteEntry.js',
-      },
-      shared: {
-        react: { singleton: true },
-        'react-dom': { singleton: true },
-        'react-router-dom': { singleton: true },
-      },
-    }),
-    new HtmlWebpackPlugin({
-      template: './public/index.html',
-    }),
-  ],
+  };
 };
 ```
 
-### 5. Create Core Files:
+### 5. Container Architecture
+
+```mermaid
+graph TD
+    A[Container App] --> B[Router]
+    B --> C[Header Component]
+    B --> D[Main Content Area]
+    D --> E[Home Route]
+    D --> F[Products Route - Vue MF]
+    D --> G[Cart Route - React MF]
+    D --> H[Auth Route - React MF]
+    
+    I[RxJS Global Store] --> C
+    I --> F
+    I --> G
+    I --> H
+```
+
+### 6. Create Container Components
 
 **public/index.html:**
 ```html
@@ -609,14 +610,15 @@ module.exports = {
 ```tsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AppProvider } from './contexts/AppContext';
+import { AppProvider } from './context/AppContextRxJS';
 import Header from './components/Header';
-import HomePage from './pages/HomePage';
+import Home from './pages/Home';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Lazy load microfrontends
-const ProductsApp = React.lazy(() => import('products/App'));
-const CartApp = React.lazy(() => import('cart/App'));
-const AuthApp = React.lazy(() => import('auth/App'));
+const RemoteProductsApp = React.lazy(() => import('./components/RemoteProductsApp'));
+const RemoteCartApp = React.lazy(() => import('./components/RemoteCartApp'));
+const RemoteAuthApp = React.lazy(() => import('./components/RemoteAuthApp'));
 
 function App() {
   return (
@@ -624,13 +626,34 @@ function App() {
       <Router>
         <div className="min-h-screen bg-gray-50">
           <Header />
-          <main>
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <React.Suspense fallback={<div>Loading...</div>}>
               <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/products/*" element={<ProductsApp />} />
-                <Route path="/cart" element={<CartApp />} />
-                <Route path="/auth/*" element={<AuthApp />} />
+                <Route path="/" element={<Home />} />
+                <Route
+                  path="/products/*"
+                  element={
+                    <ErrorBoundary microfrontendName="Products">
+                      <RemoteProductsApp />
+                    </ErrorBoundary>
+                  }
+                />
+                <Route
+                  path="/cart/*"
+                  element={
+                    <ErrorBoundary microfrontendName="Cart">
+                      <RemoteCartApp />
+                    </ErrorBoundary>
+                  }
+                />
+                <Route
+                  path="/auth/*"
+                  element={
+                    <ErrorBoundary microfrontendName="Auth">
+                      <RemoteAuthApp />
+                    </ErrorBoundary>
+                  }
+                />
               </Routes>
             </React.Suspense>
           </main>
@@ -643,173 +666,41 @@ function App() {
 export default App;
 ```
 
-**src/contexts/AppContext.tsx:**
-```tsx
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { globalStore, GlobalState, User } from '@my-app/shared';
-
-interface AppContextType {
-  user: User | null;
-  cartCount: number;
-  isAuthenticated: boolean;
-  loading: boolean;
-}
-
-const AppContext = createContext<AppContextType | undefined>(undefined);
-
-export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, setState] = useState<GlobalState>(globalStore.getState());
-
-  useEffect(() => {
-    const unsubscribe = globalStore.subscribe(setState);
-    return unsubscribe;
-  }, []);
-
-  const cartCount = state.cart.reduce((sum, item) => sum + item.quantity, 0);
-
-  const value: AppContextType = {
-    user: state.user,
-    cartCount,
-    isAuthenticated: !!state.user,
-    loading: state.loading,
-  };
-
-  return (
-    <AppContext.Provider value={value}>
-      {children}
-    </AppContext.Provider>
-  );
-};
-
-export const useApp = () => {
-  const context = useContext(AppContext);
-  if (context === undefined) {
-    throw new Error('useApp must be used within an AppProvider');
-  }
-  return context;
-};
-```
-
-**src/components/Header.tsx:**
-```tsx
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { useApp } from '../contexts/AppContext';
-
-const Header: React.FC = () => {
-  const { user, cartCount, isAuthenticated } = useApp();
-
-  return (
-    <header className="bg-white shadow-sm border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center">
-            <h1 className="text-xl font-bold text-gray-900">
-              🛒 E-commerce
-            </h1>
-          </Link>
-
-          {/* Navigation */}
-          <nav className="flex items-center space-x-6">
-            <Link 
-              to="/products" 
-              className="text-gray-600 hover:text-gray-900"
-            >
-              Products
-            </Link>
-            
-            <Link 
-              to="/cart" 
-              className="relative text-gray-600 hover:text-gray-900"
-            >
-              🛒 Cart
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {cartCount}
-                </span>
-              )}
-            </Link>
-
-            {isAuthenticated ? (
-              <div className="flex items-center space-x-4">
-                <span className="text-gray-700">
-                  👤 {user?.name?.firstname}
-                </span>
-                <button className="text-red-600 hover:text-red-800">
-                  Logout
-                </button>
-              </div>
-            ) : (
-              <Link 
-                to="/auth" 
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-              >
-                Login
-              </Link>
-            )}
-          </nav>
-        </div>
-      </div>
-    </header>
-  );
-};
-
-export default Header;
-```
-
-**src/index.tsx:**
-```tsx
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-
-const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
-);
-
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
-```
-
 ---
 
-## 🛍️ Products Microfrontend (Vue.js)
+## Products Microfrontend (Vue.js)
 
-### 1. Initialize Products App:
+### 1. Initialize Products App
 
 ```bash
 cd ../products
 npm init -y
 ```
 
-### 2. Install Dependencies:
+### 2. Install Dependencies
 
 ```bash
 # Vue dependencies
-npm install vue@^3.2.0 vue-router@^4.0.0
+npm install vue@^3.3.4 vue-router@^4.2.4 pinia@^2.1.6
 
-# Development dependencies  
-npm install --save-dev @vitejs/plugin-vue typescript webpack webpack-cli webpack-dev-server html-webpack-plugin vue-loader vue-template-compiler ts-loader css-loader style-loader
+# Development dependencies
+npm install --save-dev @vitejs/plugin-vue typescript webpack webpack-cli webpack-dev-server html-webpack-plugin vue-loader css-loader style-loader ts-loader
 
 # Shared library
 npm install ../shared
 ```
 
-### 3. Webpack Configuration (webpack.config.js):
+### 3. Webpack Configuration
 
 ```javascript
-const ModuleFederationPlugin = require('@module-federation/webpack');
 const { VueLoaderPlugin } = require('vue-loader');
+const { ModuleFederationPlugin } = require('webpack').container;
 
 module.exports = {
-  entry: './src/index.ts',
+  entry: './src/bootstrap.ts',
   mode: 'development',
   devServer: {
-    port: 4001,
+    port: 3001,
     headers: {
       'Access-Control-Allow-Origin': '*',
     },
@@ -846,41 +737,173 @@ module.exports = {
         './App': './src/App.vue',
       },
       shared: {
-        vue: { singleton: true },
+        vue: { singleton: true, eager: false, requiredVersion: '^3.3.4' },
+        'vue-router': { singleton: true, eager: false, requiredVersion: '^4.2.4' },
+        pinia: { singleton: true, eager: false, requiredVersion: '^2.1.6' },
+        '@microfrontend-ecommerce/shared': { singleton: true, eager: false },
       },
     }),
   ],
 };
 ```
 
-### 4. Create Vue App:
+### 4. Vue App Structure
 
-**src/App.vue:**
-```vue
-<template>
-  <div>
-    <router-view />
-  </div>
-</template>
-
-<script setup lang="ts">
-import { provide } from 'vue';
-import { useGlobalStore } from './composables/useRxJSStore';
-
-// Provide global store to all child components
-const { state } = useGlobalStore();
-provide('globalStore', state);
-</script>
+```mermaid
+graph TD
+    A[Products App Vue] --> B[Router]
+    B --> C[ProductList Component]
+    B --> D[ProductDetail Component]
+    C --> E[ProductCard Components]
+    
+    F[useRxJSStore Composable] --> C
+    F --> D
+    F --> E
+    
+    G[Pinia Store] --> C
+    G --> D
 ```
 
-**src/composables/useRxJSStore.ts:**
+---
+
+## Cart Microfrontend (React)
+
+### 1. Initialize Cart App
+
+```bash
+cd ../cart
+npm init -y
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install react react-dom
+npm install --save-dev @types/react @types/react-dom typescript webpack webpack-cli webpack-dev-server babel-loader @babel/core @babel/preset-react @babel/preset-typescript css-loader style-loader html-webpack-plugin
+
+npm install ../shared
+```
+
+### 3. Cart Architecture
+
+```mermaid
+graph TD
+    A[Cart App React] --> B[CartProvider Context]
+    B --> C[Cart Components]
+    C --> D[CartItem Component]
+    C --> E[EmptyCart Component]
+    C --> F[CartSummary Component]
+    
+    G[useRxJSStore Hook] --> B
+    H[RxJS Global Store] --> G
+```
+
+---
+
+## Auth Microfrontend (React)
+
+### 1. Initialize Auth App
+
+```bash
+cd ../auth
+npm init -y
+```
+
+### 2. Auth Flow Architecture
+
+```mermaid
+stateDiagram-v2
+    [*] --> NotAuthenticated
+    NotAuthenticated --> LoginForm: User visits /auth
+    LoginForm --> Authenticated: Successful login
+    Authenticated --> ProfileView: Show user profile
+    ProfileView --> NotAuthenticated: User logs out
+    Authenticated --> NotAuthenticated: Session expires
+```
+
+---
+
+## Module Federation Configuration
+
+### Key Concepts
+
+```mermaid
+graph LR
+    A[Host Application] --> B[Remote 1]
+    A --> C[Remote 2]
+    A --> D[Remote 3]
+    A --> E[Shared Dependencies]
+    B --> E
+    C --> E
+    D --> E
+```
+
+### Configuration Best Practices
+
+1. **Host Application (Container):**
+   - Consumes other microfrontends
+   - Provides routing and layout
+   - Manages shared dependencies
+
+2. **Remote Applications (Products, Cart, Auth):**
+   - Expose components/apps
+   - Developed independently
+   - Have their own webpack dev server
+
+3. **Shared Dependencies:**
+   - Prevent duplicate libraries
+   - Ensure version compatibility
+   - Optimize bundle size
+
+---
+
+## RxJS Global Store Implementation
+
+### Store Architecture
+
+```mermaid
+graph TD
+    A[RxJS Global Store] --> B[BehaviorSubject State]
+    B --> C[User State]
+    B --> D[Cart State]
+    B --> E[Products State]
+    B --> F[Loading State]
+    B --> G[Error State]
+    
+    H[Actions] --> A
+    A --> I[State Updates]
+    I --> J[localStorage Persistence]
+    I --> K[Component Re-renders]
+```
+
+### React Integration
+
 ```typescript
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { globalStore, GlobalState, Product } from '@my-app/shared';
+// React hook for Container and Cart microfrontends
+import { useState, useEffect } from 'react';
+import { globalStore } from '@microfrontend-ecommerce/shared';
+
+export const useGlobalSelector = <K extends keyof GlobalState>(key: K) => {
+  const [value, setValue] = useState(globalStore.getState()[key]);
+
+  useEffect(() => {
+    const subscription = globalStore.select(key).subscribe(setValue);
+    return () => subscription.unsubscribe();
+  }, [key]);
+
+  return value;
+};
+```
+
+### Vue Integration
+
+```typescript
+// Vue composable for Products microfrontend
+import { ref, onMounted, onUnmounted } from 'vue';
+import { globalStore } from '@microfrontend-ecommerce/shared';
 
 export const useGlobalStore = () => {
-  const state = ref<GlobalState>(globalStore.getState());
-
+  const state = ref(globalStore.getState());
   let unsubscribe: (() => void) | null = null;
 
   onMounted(() => {
@@ -895,454 +918,176 @@ export const useGlobalStore = () => {
     }
   });
 
-  return {
-    state: computed(() => state.value),
-  };
-};
-
-export const useCart = () => {
-  const { state } = useGlobalStore();
-  
-  const cart = computed(() => state.value.cart);
-  
-  const addToCart = (product: Product, quantity: number = 1) => {
-    globalStore.addToCart(product, quantity);
-  };
-
-  const removeFromCart = (productId: number) => {
-    globalStore.removeFromCart(productId);
-  };
-
-  const updateQuantity = (productId: number, quantity: number) => {
-    globalStore.updateCartQuantity(productId, quantity);
-  };
-
-  const isInCart = (productId: number) => {
-    return computed(() => cart.value.some(item => item.productId === productId));
-  };
-
-  const getProductQuantity = (productId: number) => {
-    return computed(() => {
-      const item = cart.value.find(item => item.productId === productId);
-      return item ? item.quantity : 0;
-    });
-  };
-
-  return {
-    cart,
-    addToCart,
-    removeFromCart,
-    updateQuantity,
-    isInCart,
-    getProductQuantity,
-  };
-};
-```
-
----
-
-## 🛒 Cart Microfrontend (React)
-
-### 1. Initialize Cart App:
-
-```bash
-cd ../cart
-npm init -y
-```
-
-### 2. Install Dependencies:
-
-```bash
-npm install react react-dom
-npm install --save-dev @types/react @types/react-dom typescript webpack webpack-cli webpack-dev-server ts-loader css-loader style-loader
-npm install ../shared
-```
-
-### 3. Webpack Configuration:
-
-```javascript
-const ModuleFederationPlugin = require('@module-federation/webpack');
-
-module.exports = {
-  entry: './src/index.tsx',
-  mode: 'development',
-  devServer: {
-    port: 4002,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-    },
-  },
-  resolve: {
-    extensions: ['.tsx', '.ts', '.js'],
-  },
-  module: {
-    rules: [
-      {
-        test: /\.tsx?$/,
-        loader: 'ts-loader',
-        exclude: /node_modules/,
-      },
-      {
-        test: /\.css$/i,
-        use: ['style-loader', 'css-loader'],
-      },
-    ],
-  },
-  plugins: [
-    new ModuleFederationPlugin({
-      name: 'cart',
-      filename: 'remoteEntry.js',
-      exposes: {
-        './App': './src/App',
-      },
-      shared: {
-        react: { singleton: true },
-        'react-dom': { singleton: true },
-      },
-    }),
-  ],
-};
-```
-
-### 4. Create React Components:
-
-**src/App.tsx:**
-```tsx
-import React from 'react';
-import { CartProvider } from './contexts/CartContext';
-import CartPage from './pages/CartPage';
-
-const App: React.FC = () => {
-  return (
-    <CartProvider>
-      <CartPage />
-    </CartProvider>
-  );
-};
-
-export default App;
-```
-
-**src/contexts/CartContext.tsx:**
-```tsx
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { globalStore, GlobalState, Product } from '@my-app/shared';
-
-interface CartContextType {
-  cart: Array<{ productId: number; quantity: number; product?: Product }>;
-  total: number;
-  removeFromCart: (productId: number) => void;
-  updateQuantity: (productId: number, quantity: number) => void;
-  clearCart: () => void;
-}
-
-const CartContext = createContext<CartContextType | undefined>(undefined);
-
-export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, setState] = useState<GlobalState>(globalStore.getState());
-
-  useEffect(() => {
-    const unsubscribe = globalStore.subscribe(setState);
-    return unsubscribe;
-  }, []);
-
-  const cartWithProducts = state.cart.map(item => {
-    const product = state.products.find(p => p.id === item.productId);
-    return { ...item, product };
-  });
-
-  const total = cartWithProducts.reduce((sum, item) => {
-    return sum + ((item.product?.price || 0) * item.quantity);
-  }, 0);
-
-  const removeFromCart = (productId: number) => {
-    globalStore.removeFromCart(productId);
-  };
-
-  const updateQuantity = (productId: number, quantity: number) => {
-    globalStore.updateCartQuantity(productId, quantity);
-  };
-
-  const clearCart = () => {
-    globalStore.clearCart();
-  };
-
-  return (
-    <CartContext.Provider value={{
-      cart: cartWithProducts,
-      total,
-      removeFromCart,
-      updateQuantity,
-      clearCart,
-    }}>
-      {children}
-    </CartContext.Provider>
-  );
-};
-
-export const useCart = () => {
-  const context = useContext(CartContext);
-  if (context === undefined) {
-    throw new Error('useCart must be used within a CartProvider');
-  }
-  return context;
-};
-```
-
----
-
-## 🔧 Module Federation Configuration
-
-### Key Concepts:
-
-1. **Host Application (Container):**
-   - Consumes other microfrontends
-   - Provides routing and layout
-   - Manages global state
-
-2. **Remote Applications (Products, Cart, Auth):**
-   - Expose components/apps
-   - Can be developed independently
-   - Have their own webpack dev server
-
-3. **Shared Dependencies:**
-   - Prevent duplicate libraries
-   - Ensure version compatibility
-   - Optimize bundle size
-
-### Configuration Best Practices:
-
-```javascript
-// Host Configuration
-new ModuleFederationPlugin({
-  name: 'container',
-  remotes: {
-    products: 'products@http://localhost:4001/remoteEntry.js',
-    cart: 'cart@http://localhost:4002/remoteEntry.js',
-  },
-  shared: {
-    react: { singleton: true, requiredVersion: '^18.0.0' },
-    'react-dom': { singleton: true, requiredVersion: '^18.0.0' },
-  },
-});
-
-// Remote Configuration
-new ModuleFederationPlugin({
-  name: 'products',
-  filename: 'remoteEntry.js',
-  exposes: {
-    './App': './src/App.vue',
-    './ProductCard': './src/components/ProductCard.vue',
-  },
-  shared: {
-    vue: { singleton: true, requiredVersion: '^3.2.0' },
-  },
-});
-```
-
----
-
-## 📡 Communication Setup
-
-### 1. RxJS Store Integration:
-
-```typescript
-// In each microfrontend
-import { globalStore } from '@my-app/shared';
-
-// React Hook
-export const useGlobalStore = () => {
-  const [state, setState] = useState(globalStore.getState());
-  
-  useEffect(() => {
-    const unsubscribe = globalStore.subscribe(setState);
-    return unsubscribe;
-  }, []);
-  
-  return state;
-};
-
-// Vue Composable  
-export const useGlobalStore = () => {
-  const state = ref(globalStore.getState());
-  
-  onMounted(() => {
-    globalStore.subscribe((newState) => {
-      state.value = newState;
-    });
-  });
-  
   return { state };
 };
 ```
 
-### 2. EventBus for Legacy Support:
+---
 
-```typescript
-import { EventBus } from '@my-app/shared';
+## Communication Flow
 
-const eventBus = EventBus.getInstance();
+### Cross-Microfrontend State Updates
 
-// Emit events
-eventBus.emit('USER_LOGIN', { user });
-eventBus.emit('CART_UPDATE', { cart });
+```mermaid
+sequenceDiagram
+    participant P as Products (Vue)
+    participant S as RxJS Store
+    participant C as Cart (React)
+    participant H as Header (React)
 
-// Listen to events
-eventBus.on('USER_LOGOUT', () => {
-  // Handle logout
-});
+    P->>S: addToCart(product, quantity)
+    S->>S: Update cart state
+    S-->>C: Emit new cart state
+    S-->>H: Emit new cart count
+    S-->>P: Emit updated cart for button state
+    S->>S: Persist to localStorage
+    
+    Note over P,H: All components re-render automatically
 ```
 
 ---
 
-## 🧪 Testing & Deployment
+## Testing & Deployment
 
-### 1. Development Testing:
-
-```bash
-# Terminal 1 - Shared
-cd shared && npm run build:watch
-
-# Terminal 2 - Container  
-cd container && npm start
-
-# Terminal 3 - Products
-cd products && npm start
-
-# Terminal 4 - Cart
-cd cart && npm start
-```
-
-### 2. Production Build:
+### 1. Development Testing
 
 ```bash
-# Build all apps
-npm run build:all
+# Start all services
+npm run dev
 
-# Or individually
-cd shared && npm run build
-cd container && npm run build  
-cd products && npm run build
-cd cart && npm run build
+# Test in browser
+open http://localhost:3000
 ```
 
-### 3. Deployment Strategies:
+### 2. Production Build
 
-**Option 1: Same Domain**
-```
-https://myapp.com/          (Container)
-https://myapp.com/products  (Products MF)
-https://myapp.com/cart      (Cart MF)
-```
-
-**Option 2: Separate Domains**
-```  
-https://app.mycompany.com/       (Container)
-https://products.mycompany.com/  (Products MF)  
-https://cart.mycompany.com/      (Cart MF)
+```mermaid
+flowchart TD
+    A[npm run build:all] --> B[Build Shared]
+    B --> C[Build Products]
+    C --> D[Build Cart]
+    D --> E[Build Auth]
+    E --> F[Build Container]
+    F --> G[Copy to dist/]
+    G --> H[Single deployable artifact]
 ```
 
----
+### 3. Deployment Architecture
 
-## 📝 Script Automation
+```mermaid
+graph TD
+    A[Local Development] --> B[Git Repository]
+    B --> C[CI/CD Pipeline]
+    C --> D[Build Process]
+    D --> E[Static Hosting]
+    E --> F[CDN Distribution]
+    
+    subgraph "Hosting Options"
+        G[Vercel]
+        H[Netlify]
+        I[AWS S3 + CloudFront]
+    end
+    
+    E --> G
+    E --> H
+    E --> I
+```
 
-### Create Root Scripts:
+### 4. Vercel Configuration (vercel.json)
 
-**package.json (Root):**
 ```json
 {
-  "scripts": {
-    "install:all": "npm install && npm run install:apps",
-    "install:apps": "cd shared && npm install && cd ../container && npm install && cd ../products && npm install && cd ../cart && npm install",
-    "build:shared": "cd shared && npm run build",
-    "start:all": "concurrently \"npm run start:shared\" \"npm run start:container\" \"npm run start:products\" \"npm run start:cart\"",
-    "start:shared": "cd shared && npm run build:watch",
-    "start:container": "cd container && npm start",
-    "start:products": "cd products && npm start", 
-    "start:cart": "cd cart && npm start"
-  },
-  "devDependencies": {
-    "concurrently": "^7.6.0"
-  }
+  "version": 2,
+  "buildCommand": "npm run build:all",
+  "outputDirectory": "dist",
+  "installCommand": "npm run install:all",
+  "rewrites": [
+    { "source": "/products", "destination": "/index.html" },
+    { "source": "/cart", "destination": "/index.html" },
+    { "source": "/auth", "destination": "/index.html" },
+    { "source": "/products/(.*)\\.js", "destination": "/products/$1.js" },
+    { "source": "/cart/(.*)\\.js", "destination": "/cart/$1.js" },
+    { "source": "/auth/(.*)\\.js", "destination": "/auth/$1.js" },
+    { "source": "/products/(.*)", "destination": "/index.html" },
+    { "source": "/cart/(.*)", "destination": "/index.html" },
+    { "source": "/auth/(.*)", "destination": "/index.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*\\.js)",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/javascript; charset=utf-8"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    }
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false
 }
 ```
 
 ---
 
-## 🎯 Success Checklist
+## Advanced Topics
 
-✅ **Project Structure Created**  
-✅ **Shared Library Setup**  
-✅ **Container App Running (Port 4000)**  
-✅ **Products App Running (Port 4001)**  
-✅ **Cart App Running (Port 4002)**  
-✅ **Module Federation Working**  
-✅ **RxJS Global Store Implemented**  
-✅ **Cross-App Communication Working**  
-✅ **State Persistence Working**  
+### Error Boundaries
 
----
+```typescript
+class MicrofrontendErrorBoundary extends React.Component {
+  state = { hasError: false };
 
-## 🚀 Next Steps
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true };
+  }
 
-### Advanced Features:
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Microfrontend Error:', error, errorInfo);
+  }
 
-1. **Add Testing:**
-   ```bash
-   npm install --save-dev jest @testing-library/react
-   ```
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="error-fallback">
+          <h2>Something went wrong with this microfrontend.</h2>
+          <button onClick={() => this.setState({ hasError: false })}>
+            Try again
+          </button>
+        </div>
+      );
+    }
 
-2. **Add Styling System:**
-   ```bash
-   npm install tailwindcss postcss autoprefixer
-   ```
+    return this.props.children;
+  }
+}
+```
 
-3. **Add Error Boundaries:**
-   ```tsx
-   class MicrofrontendErrorBoundary extends React.Component {
-     // Error handling for microfrontends
-   }
-   ```
+### Performance Optimization
 
-4. **Add Performance Monitoring:**
-   ```typescript
-   // Monitor microfrontend loading times
-   performance.mark('mf-start');
-   // Load microfrontend
-   performance.mark('mf-end');
-   ```
-
-5. **Add CI/CD Pipeline:**
-   ```yaml
-   # .github/workflows/deploy.yml
-   - name: Build and Deploy
-     run: |
-       npm run build:all
-       # Deploy to S3/CDN
-   ```
+```mermaid
+graph TD
+    A[Performance Strategies] --> B[Code Splitting]
+    A --> C[Lazy Loading]
+    A --> D[Shared Dependencies]
+    A --> E[Bundle Analysis]
+    
+    B --> F[Route-based splitting]
+    C --> G[Dynamic imports]
+    D --> H[Singleton React/Vue]
+    E --> I[Webpack Bundle Analyzer]
+```
 
 ---
 
-## 🎓 Learning Resources
+## Troubleshooting
 
-### Documentation:
-- [Module Federation Docs](https://webpack.js.org/concepts/module-federation/)
-- [RxJS Guide](https://rxjs.dev/)
-- [React 18 Features](https://reactjs.org/blog/2022/03/29/react-v18.html)
-- [Vue 3 Composition API](https://vuejs.org/guide/composition-api-introduction.html)
-
-### Best Practices:
-- Keep microfrontends small and focused
-- Share state, not components
-- Handle errors gracefully  
-- Monitor performance
-- Test integration points
-
----
-
-## 💡 Troubleshooting
-
-### Common Issues:
+### Common Issues
 
 1. **CORS Errors:**
    ```javascript
@@ -1363,21 +1108,128 @@ https://cart.mycompany.com/      (Cart MF)
    }
    ```
 
-4. **Hot Reload Issues:**
-   ```bash
-   # Restart dev servers
-   ```
+4. **State Not Syncing:**
+   - Verify globalStore.dispatch() calls
+   - Check RxJS subscriptions
+   - Ensure proper hook/composable usage
+
+### Debug Checklist
+
+- [ ] All microfrontends running on correct ports
+- [ ] Shared library built successfully
+- [ ] No console errors in browser
+- [ ] Network tab shows successful remoteEntry.js loads
+- [ ] RxJS store receives actions
+- [ ] localStorage contains persisted state
 
 ---
 
-## 🏆 Congratulations!
+## Success Checklist
 
-আপনি এখন একটা complete microfrontend application বানাতে পারেন! 🎉
+- [ ] Project structure created
+- [ ] Shared library setup and building
+- [ ] Container app running (Port 3000)
+- [ ] Products app running (Port 3001)
+- [ ] Cart app running (Port 3002)
+- [ ] Auth app running (Port 3003)
+- [ ] Module Federation working
+- [ ] RxJS Global Store implemented
+- [ ] Cross-app communication working
+- [ ] State persistence working
+- [ ] Production build successful
+- [ ] Deployment working
 
-এই setup দিয়ে আপনি:
-- ✅ Multiple frameworks একসাথে use করতে পারবেন
-- ✅ Independent deployment করতে পারবেন  
-- ✅ Team অনুযায়ী কাজ ভাগ করতে পারবেন
-- ✅ Scalable architecture তৈরি করতে পারবেন
+---
 
-**Happy Coding!** 🚀✨
+## Next Steps
+
+### Advanced Features
+
+1. **Add Testing Framework:**
+   ```bash
+   npm install --save-dev jest @testing-library/react @testing-library/vue
+   ```
+
+2. **Add Performance Monitoring:**
+   ```typescript
+   // Monitor microfrontend loading times
+   performance.mark('mf-start');
+   // Load microfrontend
+   performance.mark('mf-end');
+   performance.measure('mf-load', 'mf-start', 'mf-end');
+   ```
+
+3. **Add CI/CD Pipeline:**
+   ```yaml
+   # .github/workflows/deploy.yml
+   name: Deploy
+   on:
+     push:
+       branches: [main]
+   jobs:
+     deploy:
+       runs-on: ubuntu-latest
+       steps:
+         - uses: actions/checkout@v2
+         - name: Setup Node
+           uses: actions/setup-node@v2
+           with:
+             node-version: '18'
+         - name: Install and Build
+           run: |
+             npm run install:all
+             npm run build:all
+         - name: Deploy to Vercel
+           uses: amondnet/vercel-action@v20
+   ```
+
+### Scaling Considerations
+
+```mermaid
+graph TD
+    A[Current Architecture] --> B[Add New Microfrontends]
+    B --> C[Orders MF]
+    B --> D[Reviews MF]
+    B --> E[Analytics MF]
+    
+    F[Infrastructure] --> G[CDN]
+    F --> H[Load Balancer]
+    F --> I[Monitoring]
+    
+    J[Team Structure] --> K[Products Team]
+    J --> L[Cart Team]
+    J --> M[Auth Team]
+    J --> N[Platform Team]
+```
+
+---
+
+## Resources
+
+### Documentation
+- [Module Federation Docs](https://webpack.js.org/concepts/module-federation/)
+- [RxJS Guide](https://rxjs.dev/)
+- [React 18 Features](https://reactjs.org/blog/2022/03/29/react-v18.html)
+- [Vue 3 Composition API](https://vuejs.org/guide/composition-api-introduction.html)
+
+### Best Practices
+- Keep microfrontends small and focused
+- Share state, not components
+- Handle errors gracefully
+- Monitor performance
+- Test integration points
+- Document communication contracts
+
+---
+
+## Conclusion
+
+You now have a complete understanding of how to build a production-ready microfrontend application. This architecture provides:
+
+- Independent development and deployment
+- Technology diversity (React + Vue)
+- Centralized state management
+- Real-time cross-app communication
+- Production deployment strategies
+
+The combination of Module Federation, RxJS, and proper microfrontend patterns creates a scalable, maintainable architecture suitable for large teams and complex applications.
