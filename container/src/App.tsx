@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AppProvider } from './context/AppContext';
+import { AppProvider } from './context/AppContextRxJS';
 
 const showDebugBoxes = false; // Set to false to hide all debug boxes
 import Header from './components/Header';
@@ -10,7 +10,7 @@ import RemoteCartApp from './components/RemoteCartApp';
 import RemoteAuthApp from './components/RemoteAuthApp';
 // Debug components removed for clean UI
 // import SimpleAddToCartTest from './components/SimpleAddToCartTest';
-// import EventBusTestPanel from './components/EventBusTestPanel';
+// RxJS Test Panel removed as requested
 import Home from './pages/Home';
 
 function App() {
@@ -77,8 +77,7 @@ function App() {
           </footer>
         </div>
         
-        {/* Debug Tools for development - REMOVED */}
-        {/* Debug panels removed for clean production UI */}
+        {/* Debug Tools removed */}
       </Router>
     </AppProvider>
   );

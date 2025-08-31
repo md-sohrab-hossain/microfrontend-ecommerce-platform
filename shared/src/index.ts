@@ -6,3 +6,6 @@ export * from './api';
 
 // Export all utilities
 export * from './utils';
+
+// Export RxJS Global Store
+export * from './store/GlobalStore';
