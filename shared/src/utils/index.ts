@@ -1,5 +1,3 @@
-// EventBus removed - using RxJS Global Store for communication
-
 // Storage utilities
 export const storage = {
   get: (key: string): any => {
@@ -15,7 +13,7 @@ export const storage = {
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
-      console.error('Failed to save to localStorage:', error);
+      console.error("Failed to save to localStorage:", error);
     }
   },
 
@@ -23,7 +21,7 @@ export const storage = {
     try {
       localStorage.removeItem(key);
     } catch (error) {
-      console.error('Failed to remove from localStorage:', error);
+      console.error("Failed to remove from localStorage:", error);
     }
   },
 
@@ -31,15 +29,18 @@ export const storage = {
     try {
       localStorage.clear();
     } catch (error) {
-      console.error('Failed to clear localStorage:', error);
+      console.error("Failed to clear localStorage:", error);
     }
   },
 };
 
 // Format currency
-export const formatCurrency = (amount: number, currency: string = 'USD'): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
+export const formatCurrency = (
+  amount: number,
+  currency: string = "USD"
+): string => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
     currency,
   }).format(amount);
 };
@@ -50,7 +51,7 @@ export const debounce = <T extends (...args: any[]) => any>(
   wait: number
 ): ((...args: Parameters<T>) => void) => {
   let timeout: NodeJS.Timeout;
-  
+
   return (...args: Parameters<T>) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
@@ -63,7 +64,7 @@ export const throttle = <T extends (...args: any[]) => any>(
   limit: number
 ): ((...args: Parameters<T>) => void) => {
   let inThrottle: boolean;
-  
+
   return (...args: Parameters<T>) => {
     if (!inThrottle) {
       func(...args);
@@ -87,15 +88,15 @@ export const isValidEmail = (email: string): boolean => {
 // Truncate text
 export const truncateText = (text: string, maxLength: number): string => {
   if (text.length <= maxLength) return text;
-  return text.substr(0, maxLength) + '...';
+  return text.substr(0, maxLength) + "...";
 };
 
 // Deep clone object
 export const deepClone = <T>(obj: T): T => {
-  if (obj === null || typeof obj !== 'object') return obj;
+  if (obj === null || typeof obj !== "object") return obj;
   if (obj instanceof Date) return new Date(obj.getTime()) as any;
-  if (obj instanceof Array) return obj.map(item => deepClone(item)) as any;
-  if (typeof obj === 'object') {
+  if (obj instanceof Array) return obj.map((item) => deepClone(item)) as any;
+  if (typeof obj === "object") {
     const clonedObj = {} as any;
     for (const key in obj) {
       if (obj.hasOwnProperty(key)) {

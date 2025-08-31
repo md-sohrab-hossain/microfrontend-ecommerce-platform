@@ -65,28 +65,4 @@ export interface ApiResponse<T> {
   success: boolean;
 }
 
-// Event types for microfrontend communication
-export interface MicrofrontendEvent {
-  type: string;
-  payload?: any;
-}
-
-export interface AddToCartEvent extends MicrofrontendEvent {
-  type: 'ADD_TO_CART';
-  payload: {
-    product: Product;
-    quantity: number;
-  };
-}
-
-export interface LoginEvent extends MicrofrontendEvent {
-  type: 'USER_LOGIN';
-  payload: {
-    token: string;
-    user: Partial<User>;
-  };
-}
-
-export interface LogoutEvent extends MicrofrontendEvent {
-  type: 'USER_LOGOUT';
-}
+// EventBus-related types removed (migrated to RxJS)

@@ -1,11 +1,6 @@
 import React, { createContext, useContext, useReducer, ReactNode } from "react";
 import { storage } from "@microfrontend-ecommerce/shared";
-import {
-  User,
-  Product,
-  CartItem,
-  EventBus,
-} from "@microfrontend-ecommerce/shared";
+import { User, Product, CartItem } from "@microfrontend-ecommerce/shared";
 
 // State interface
 interface AppState {
@@ -205,7 +200,6 @@ interface AppProviderProps {
 
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
-  const eventBus = EventBus.getInstance();
 
   // Initialize authentication state from localStorage
   React.useEffect(() => {
@@ -229,9 +223,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Action creators
   const login = (user: User) => {
     dispatch({ type: "LOGIN_SUCCESS", payload: user });
-
-    // Emit login event to other microfrontends
-    eventBus.emit("USER_LOGIN", { user, token: "dummy-token" });
   };
 
   const logout = () => {
@@ -243,9 +234,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
     // Clear cart data as well on logout
     storage.remove("cart");
-
-    // Emit logout event to other microfrontends
-    eventBus.emit("USER_LOGOUT");
 
     // Redirect to home page after logout (same as Auth microfrontend behavior)
     setTimeout(() => {
@@ -325,84 +313,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     dispatch({ type: "CLEAR_CART" });
     storage.remove("cart");
   };
-
-  // Subscribe to microfrontend events
-  React.useEffect(() => {
-    // Check for buffered events
-    const bufferedEvents = (window as any).__CART_EVENT_BUFFER__ || [];
-
-    const handleAddToCart = (data: { product: Product; quantity: number }) => {
-      // Store product details and add to container cart
-      addToCart(data.product.id, data.quantity, data.product);
-
-      if (typeof eventBus.listeners === "function") {
-        const listeners = eventBus.listeners("ADD_TO_CART_FORWARD");
-        if (listeners.length === 0) {
-          // Store event for later when Cart loads
-          const bufferedEvents = (window as any).__CART_EVENT_BUFFER__ || [];
-          bufferedEvents.push({
-            type: "ADD_TO_CART_FORWARD",
-            data,
-            timestamp: Date.now(),
-          });
-          (window as any).__CART_EVENT_BUFFER__ = bufferedEvents;
-        } else {
-          eventBus.emit("ADD_TO_CART_FORWARD", data);
-        }
-      } else {
-        // Fallback - buffer the event
-        const bufferedEvents = (window as any).__CART_EVENT_BUFFER__ || [];
-        bufferedEvents.push({
-          type: "ADD_TO_CART_FORWARD",
-          data,
-          timestamp: Date.now(),
-        });
-        (window as any).__CART_EVENT_BUFFER__ = bufferedEvents;
-      }
-    };
-
-    const handleUserLogin = (data: { user: User; token: string }) => {
-      dispatch({ type: "LOGIN_SUCCESS", payload: data.user });
-    };
-
-    // Note: Removed handleUserLogout to prevent loops - Container initiates logout via Header button
-
-    const handleCartItemRemoved = (data: {
-      productId: number;
-      remainingItems: any[];
-    }) => {
-      removeFromCart(data.productId);
-    };
-
-    const handleCartQuantityUpdated = (data: {
-      productId: number;
-      quantity: number;
-      updatedCart: any[];
-    }) => {
-      updateCartQuantity(data.productId, data.quantity);
-    };
-
-    const handleCartCleared = () => {
-      clearCart();
-    };
-
-    // Subscribe to all events
-    eventBus.on("ADD_TO_CART", handleAddToCart);
-    eventBus.on("USER_LOGIN", handleUserLogin);
-    // Note: Not listening to USER_LOGOUT to prevent loops - Container initiates logout
-    eventBus.on("CART_ITEM_REMOVED", handleCartItemRemoved);
-    eventBus.on("CART_QUANTITY_UPDATED", handleCartQuantityUpdated);
-    eventBus.on("CART_CLEARED", handleCartCleared);
-
-    return () => {
-      eventBus.off("ADD_TO_CART", handleAddToCart);
-      eventBus.off("USER_LOGIN", handleUserLogin);
-      // Note: No USER_LOGOUT cleanup needed since we don't listen to it
-      eventBus.off("CART_ITEM_REMOVED", handleCartItemRemoved);
-      eventBus.off("CART_QUANTITY_UPDATED", handleCartQuantityUpdated);
-      eventBus.off("CART_CLEARED", handleCartCleared);
-    };
-  }, []); // FIXED: Empty dependency array to prevent useEffect infinite loops
 
   return (
     <AppContext.Provider

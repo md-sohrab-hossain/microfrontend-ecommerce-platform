@@ -1,13 +1,8 @@
 import React from 'react';
-import { EventBus } from '@microfrontend-ecommerce/shared';
 
 const EmptyCart: React.FC = () => {
-  const eventBus = EventBus.getInstance();
-  
   const handleShopNow = () => {
     // Navigate to products page
-    eventBus.emit('NAVIGATE', { path: '/products' });
-    
     // If we're in a microfrontend environment, try to navigate using window location
     if (typeof window !== 'undefined') {
       window.location.href = '/products';
@@ -43,7 +38,6 @@ const EmptyCart: React.FC = () => {
             <button
               key={cat.category}
               onClick={() => {
-                eventBus.emit('NAVIGATE', { path: `/products/category/${cat.category}` });
                 if (typeof window !== 'undefined') {
                   window.location.href = `/products/category/${cat.category}`;
                 }

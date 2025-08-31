@@ -9,7 +9,6 @@ import React, {
 import {
   Product,
   CartItem,
-  EventBus,
   productsApi,
   storage,
 } from "@microfrontend-ecommerce/shared";
@@ -174,7 +173,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     (window as any).__CART_PROVIDER_ACTIVE__ = true;
   }
   const [state, dispatch] = useReducer(cartReducer, initialState);
-  const eventBus = EventBus.getInstance();
   // Track state changes
   useEffect(() => {
     // State updated
@@ -240,12 +238,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       (item: any) => item.productId !== productId
     );
     storage.set("cart", filteredCart);
-    // Notify Container of the change
-    const eventBus = EventBus.getInstance();
-    eventBus.emit("CART_ITEM_REMOVED", {
-      productId,
-      remainingItems: filteredCart,
-    });
   }, []);
   const updateQuantity = useCallback((productId: number, quantity: number) => {
     dispatch({ type: "UPDATE_QUANTITY", payload: { productId, quantity } });
@@ -257,20 +249,10 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       )
       .filter((item: any) => item.quantity > 0);
     storage.set("cart", updatedCart);
-    // Notify Container of the change
-    const eventBus = EventBus.getInstance();
-    eventBus.emit("CART_QUANTITY_UPDATED", {
-      productId,
-      quantity,
-      updatedCart,
-    });
   }, []);
   const clearCart = useCallback(() => {
     dispatch({ type: "CLEAR_CART" });
     storage.remove("cart");
-    // Notify Container of cart clear
-    const eventBus = EventBus.getInstance();
-    eventBus.emit("CART_CLEARED", {});
   }, []);
   const loadCart = useCallback(async () => {
     const savedCart = storage.get("cart") || [];
@@ -323,8 +305,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
       // Don't manually save to localStorage - let the save useEffect handle it after initialization
     };
-    // Listen to forwarded events from container
-    eventBus.on("ADD_TO_CART_FORWARD", handleAddToCart);
     // Process buffered events that occurred before Cart was ready
     const bufferedEvents = (window as any).__CART_EVENT_BUFFER__ || [];
     if (bufferedEvents.length > 0) {
@@ -337,19 +317,18 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       (window as any).__CART_EVENT_BUFFER__ = [];
     }
     return () => {
-      eventBus.off("ADD_TO_CART_FORWARD", handleAddToCart);
       (window as any).__CART_EVENT_HANDLER_SETUP__ = false;
       (window as any).__CART_PROVIDER_ACTIVE__ = false;
     };
-  }, []); // Empty dependency array - run ONLY once
-  // Load cart on mount with delay to allow buffered events to process first
+  }, []);
+
   useEffect(() => {
-    // Delay loadCart to allow buffered events to process and save to localStorage first
     setTimeout(() => {
       const directStorageCheck = localStorage.getItem("cart");
       loadCart();
-    }, 100); // Small delay to ensure buffered events are processed first
+    }, 100);
   }, [loadCart]);
+
   return (
     <CartContext.Provider
       value={{
